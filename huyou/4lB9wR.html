@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEB謎 - BRAIN</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #E6E6FA;
+            font-family: "MS Sans Serif", "Arial", sans-serif;
+            color: #4B0082;
+        }
+
+        .navbar-container {
+            background: #DDA0DD;
+            padding: 8px;
+            border-top: 2px solid #9370DB;
+            border-bottom: 2px solid #9370DB;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-right: 8px;
+            flex-grow: 0;
+        }
+
+        .nav-button {
+            background: #E6E6FA;
+            border: 2px outset #9370DB;
+            color: #4B0082;
+            font-weight: bold;
+            font-size: 14px;
+            padding: 8px 16px;
+            min-width: 44px;
+            height: 44px;
+            flex-shrink: 0;
+        }
+
+        .nav-button:active {
+            border-style: inset;
+        }
+
+        .nav-button.disabled {
+            background: #D8D8D8;
+            border: 2px outset #B8B8B8;
+            color: #888888;
+
+        }
+
+        .content-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #FFFFFF;
+            border: 3px solid #9370DB;
+            box-shadow: 5px 5px 0 #9370DB;
+            text-align: center;
+        }
+
+        h1 {
+            color: #4B0082;
+            font-size: 32px;
+            margin: 0 0 20px 0;
+            padding: 10px;
+            background: #E6E6FA;
+            border: 2px solid #9370DB;
+        }
+
+        .problem-media {
+            max-width: 100%;
+            height: auto;
+            border: 5px solid #DDA0DD;
+            margin: 20px 0;
+        }
+
+        .answer-section {
+            background: #F0F0FF;
+            padding: 20px;
+            border: 3px solid #9370DB;
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .answer-input {
+            padding: 10px;
+            font-size: 16px;
+            border: 3px inset #DDA0DD;
+            width: 200px;
+            background: #FFFFFF;
+        }
+
+        .submit-button {
+            background: #9370DB;
+            border: 3px outset #8A2BE2;
+            color: #FFFFFF;
+            font-weight: bold;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        .submit-button:active {
+            border-style: inset;
+        }
+
+        .puzzle-number {
+            font-size: 24px;
+            color: #4B0082;
+            margin-bottom: 20px;
+            background: #F0F0FF;
+            padding: 5px 15px;
+            display: inline-block;
+            border: 2px solid #9370DB;
+        }
+
+                /* BGMボタンのスタイル */
+                .bgm-button {
+            background: #E6E6FA;
+            border: 2px outset #9370DB;
+            color: #4B0082;
+            font-weight: bold;
+            height: 44px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .bgm-button.playing {
+            background: #9370DB;
+            color: #FFFFFF;
+            border-color: #4B0082;
+        }
+
+        .bgm-button:active {
+            border-style: inset;
+        }
+
+        .bgm-icon {
+            font-size: 16px;
+        }
+
+        .bgm-status {
+            font-size: 14px;
+        }
+
+        /* 音声プレーヤーのスタイル */
+        .audio-player {
+            display: flex;
+            align-items: center;
+            background: #F0F0FF;
+            border: 3px solid #9370DB;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 20px auto;
+            max-width: 500px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .play-button {
+            background: #9370DB;
+            border: none;
+            color: #FFFFFF;
+            font-size: 24px;
+            font-weight: bold;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            transition: background 0.3s;
+        }
+
+        .play-button:hover {
+            background: #4B0082;
+        }
+
+        .progress-bar-container {
+            flex-grow: 1;
+            height: 10px;
+            background: #D8D8D8;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-right: 10px;
+            position: relative;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #9370DB;
+            transition: width 0.1s;
+        }
+
+        .time-display {
+            font-size: 14px;
+            color: #4B0082;
+            font-weight: bold;
+        }
+
+        @media (max-width: 480px) {
+            .content-container {
+                margin: 10px;
+                padding: 10px;
+            }
+
+            .answer-section {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .answer-input {
+                width: 80%;
+            }
+        }
+
+
+        
+        .memo-section {
+            background: #FAF5FF;
+            padding: 10px;
+            border-top: 4px solid #9370DB;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 40px;
+            text-align: center;
+            border-radius: 8px;
+        }
+
+        .memo-section h2 {
+            color: #4B0082;
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-shadow: 1px 1px 2px rgba(75, 0, 130, 0.2);
+        }
+
+        .memo-section p {
+            color: #333;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .memo-image {
+            max-width: 100%;
+            height: auto;
+            border: 3px solid #DDA0DD;
+            border-radius: 5px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease;
+            margin-bottom: 220px; /* 画像の下に空間を追加 */
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="navbar-container">
+        <div class="navbar">
+            <button class="nav-button" onclick="window.location.href='instructions.html'">HOME</button>
+            <button class="nav-button" id="nav1">1</button>
+            <button class="nav-button" id="nav2">2</button>
+            <button class="nav-button" id="nav3">3</button>
+            <button class="nav-button" id="nav4">4</button>
+            <button class="nav-button" id="nav5">5</button>
+            <button class="nav-button" id="nav6">6</button>
+            <button class="nav-button" id="nav7">7</button>
+            <button class="nav-button" id="nav8">FINAL</button>
+
+        </div>
+        <button class="bgm-button" id="bgmToggle">
+            <span class="bgm-icon">♪</span>
+            <span class="bgm-status">OFF</span>
+        </button>
+    </div>
+    
+    <div class="content-container">
+        <div class="puzzle-number">Q4</div>
+        <h1>音声問題！！</h1>
+        
+        <img src="https://souchan917.github.io/webnazorikaishita/assets/images/Q4_nazo.png" alt="問題の画像" class="problem-media" id="problemMedia">
+
+        <div class="audio-player">
+            <button class="play-button" id="playPuzzleAudio">▶︎</button>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="time-display" id="timeDisplay">00:00</div>
+        </div>
+
+        <div class="answer-section">
+            <input type="text" class="answer-input" id="answerInput" placeholder="ひらがなで答えを入力してください">
+            <button type="button" class="submit-button" id="submitAnswer">送信</button>
+        </div>
+    </div>
+    <!-- 一口メモ セクション -->
+    <div class="memo-section">
+        <h2>一口メモ！！</h2>
+        <p>音声を流すときはこういったコードを書いて制御しています！</p>
+        <p>一応、問題用の音声をゲーム中ずっと聞くこともできるので、もの好きな方は流しっぱなしでもいいかも( *´艸｀)</p>
+
+        <img src="https://souchan917.github.io/webnazorikaishita/assets/images/Q4-1code.png" alt="一口メモの画像" class="memo-image">
+        <img src="https://souchan917.github.io/webnazorikaishita/assets/images/Q4-2code.png" alt="一口メモの画像" class="memo-image">
+    </div>
+
+    <script>
+        // グローバルなBGM制御
+        const bgm = new Audio('https://souchan917.github.io/webnazorikaishita/assets/audio/Q4_BGM.mp3');
+        bgm.loop = true;
+    
+        // DOM要素の取得
+        const bgmButton = document.getElementById('bgmToggle');
+        
+        // 問題と答えのマッピング
+        const puzzleAnswers = {
+            1: "brain",
+            2: "window",
+            3: "mirror",
+            4: "ほとり",
+            6: "memory",
+            7: "secret",
+            8: "hidden",
+            9: "final"
+        };
+    
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            // BGMの状態を復元
+            const isBgmPlaying = localStorage.getItem('bgmPlaying') === 'true';
+            if (isBgmPlaying) {
+                bgm.play().catch(error => console.log('BGM再生エラー:', error));
+                bgmButton.classList.add('playing');
+                bgmButton.querySelector('.bgm-status').textContent = 'ON';
+            } else {
+                bgmButton.querySelector('.bgm-status').textContent = 'OFF';
+            }
+    
+            // ナビゲーションと回答状態を更新
+            updateNavigation();
+            checkAnswerStatus();
+        });
+    
+        // BGMボタンのクリックイベント
+        bgmButton.addEventListener('click', () => {
+            const isPlaying = bgmButton.classList.contains('playing');
+            if (isPlaying) {
+                bgm.pause();
+                bgmButton.classList.remove('playing');
+                bgmButton.querySelector('.bgm-status').textContent = 'OFF';
+                localStorage.setItem('bgmPlaying', 'false');
+            } else {
+                bgm.play().catch(error => console.log('BGM再生エラー:', error));
+                bgmButton.classList.add('playing');
+                bgmButton.querySelector('.bgm-status').textContent = 'ON';
+                localStorage.setItem('bgmPlaying', 'true');
+            }
+        });
+    
+        // グローバルにURLマッピングを定義
+        const urlMapping = {
+            1: '1qXyZ3.html',
+            2: '2puzzleA2F1.html',
+            3: '3mYtN4.html',
+            4: '4lB9wR.html',
+            5: '5uPa1s.html',
+            6: '6banana.html',
+            7: '7dF8vX.html',
+            8: '8yC3sN.html',
+            9: '9finalPage.html'
+        };
+
+        // ナビゲーションの更新
+        function updateNavigation() {
+            const progress = parseInt(localStorage.getItem('puzzleProgress') || '1');
+            for (let i = 1; i <= 8; i++) {
+                const button = document.getElementById('nav' + i);
+                if (button) {  // ボタンが存在する場合のみ操作
+                    if (i <= progress) {
+                        button.classList.remove('disabled');
+                        button.addEventListener('click', () => {
+                            // URLマッピングを使って移動先のURLを設定
+                            window.location.href = urlMapping[i];
+                        });
+                    } else {
+                        button.classList.add('disabled');
+                    }
+                }
+            }
+        }
+
+        // 答えの状態を確認
+        function checkAnswerStatus() {
+            const currentPuzzle = parseInt(window.location.pathname.match(/(\d+)/)?.[0] || '1'); // 現在のページ番号を取得
+            const savedAnswer = localStorage.getItem(`answer_${currentPuzzle}`);
+            
+            if (savedAnswer) {
+                const answerInput = document.getElementById('answerInput');
+                const submitButton = document.getElementById('submitAnswer');
+                if (answerInput && submitButton) { // 要素が存在するかチェック
+                    answerInput.value = savedAnswer;
+                    answerInput.disabled = true;
+
+                }
+            }
+        }
+
+        // 答えの送信と次のページへの遷移
+        document.getElementById('submitAnswer')?.addEventListener('click', () => {
+            const currentPuzzle = parseInt(window.location.pathname.match(/(\d+)/)?.[0] || '1'); // 現在のページ番号を取得
+            const answerInput = document.getElementById('answerInput');
+            const answer = answerInput?.value.trim().toLowerCase();
+            const correctAnswer = puzzleAnswers[currentPuzzle];
+
+            if (answer === correctAnswer) {
+                alert('正解！次の問題へ進みます。');
+                localStorage.setItem('puzzleProgress', currentPuzzle + 1);
+                localStorage.setItem(`answer_${currentPuzzle}`, answer);
+                
+                if (answerInput) answerInput.disabled = true;  // 入力フィールドを非活性化
+                const submitButton = document.getElementById('submitAnswer');
+                if (submitButton) submitButton.disabled = true; // 送信ボタンも非活性化
+                
+                // 次のページへ移動
+                const nextPage = currentPuzzle < 9 ? urlMapping[currentPuzzle + 1] : urlMapping[9];
+                window.location.href = nextPage;
+            } else {
+                alert('不正解です。もう一度考えてみましょう。');
+            }
+        });
+
+        // ページ読み込み時にナビゲーションと回答確認を実行
+        document.addEventListener('DOMContentLoaded', () => {
+            updateNavigation();
+            checkAnswerStatus();
+        });
+
+
+
+
+
+
+        
+
+        // グローバルなオーディオオブジェクトの設定
+        const puzzleAudio = new Audio('https://souchan917.github.io/webnazorikaishita/assets/audio/Q4_nazo.mp3');
+        puzzleAudio.loop = true; // ループ再生設定
+
+        // 再生ボタンとプログレスバーの要素を取得（存在しない場合も考慮）
+        const playButton = document.getElementById('playPuzzleAudio');
+        const progressBar = document.getElementById('progressBar');
+        const timeDisplay = document.getElementById('timeDisplay');
+
+        // ページ読み込み時に音声の進行具合と再生状態を復元
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTime = parseFloat(localStorage.getItem('puzzleAudioCurrentTime')) || 0;
+            const isPlaying = localStorage.getItem('puzzleAudioIsPlaying') === 'true';
+
+            // 保存された位置から再生を開始
+            puzzleAudio.currentTime = savedTime;
+
+            // 保存された状態に基づいて再生または停止
+            if (isPlaying) {
+                puzzleAudio.play().catch(error => console.log('再生エラー:', error));
+                if (playButton) playButton.textContent = '❚❚'; // 再生中のアイコン
+            } else {
+                if (playButton) playButton.textContent = '▶︎'; // 停止中のアイコン
+            }
+        });
+
+        // 再生ボタンのクリックイベントを設定（ボタンが存在する場合のみ）
+        if (playButton) {
+            playButton.addEventListener('click', () => {
+                if (!puzzleAudio.paused) {
+                    puzzleAudio.pause();
+                    playButton.textContent = '▶︎'; // 停止中のアイコン
+                    localStorage.setItem('puzzleAudioIsPlaying', 'false'); // 状態を保存
+                } else {
+                    puzzleAudio.play();
+                    playButton.textContent = '❚❚'; // 再生中のアイコン
+                    localStorage.setItem('puzzleAudioIsPlaying', 'true'); // 状態を保存
+                }
+            });
+        }
+
+        // プログレスバーと時間表示を更新し、小まめに再生位置を保存
+        puzzleAudio.addEventListener('timeupdate', () => {
+            const currentTime = puzzleAudio.currentTime;
+            const duration = puzzleAudio.duration;
+
+            // プログレスバーの幅を更新（プログレスバーが存在する場合のみ）
+            if (progressBar) {
+                progressBar.style.width = `${(currentTime / duration) * 100}%`;
+            }
+
+            // 時間をフォーマットして表示（時間表示要素が存在する場合のみ）
+            if (timeDisplay) {
+                timeDisplay.textContent = formatTime(currentTime);
+            }
+
+            // 1秒ごとに再生位置を保存
+            localStorage.setItem('puzzleAudioCurrentTime', currentTime);
+        });
+
+        // 再生終了時にアイコンを初期状態に戻す
+        puzzleAudio.addEventListener('ended', () => {
+            if (playButton) playButton.textContent = '▶︎'; // 停止中のアイコン
+            localStorage.setItem('puzzleAudioIsPlaying', 'false'); // 再生状態を停止に設定
+        });
+
+        // 時間のフォーマット関数
+        function formatTime(seconds) {
+            const min = Math.floor(seconds / 60);
+            const sec = Math.floor(seconds % 60);
+            return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+        }
+    </script>
+    
+</body>
+</html>
