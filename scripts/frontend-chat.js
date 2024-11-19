@@ -1,5 +1,5 @@
-// frontend-chat.js
-import { saveMessage, getChatHistory } from '../libs/firebaseUtils';
+// scripts/frontend-chat.js
+import { saveMessage, getChatHistory } from '../libs/firebaseUtils.js';  // .js拡張子を追加
 
 const chatContainer = document.getElementById("chatContainer");
 const questionInput = document.getElementById("questionInput");
@@ -8,11 +8,11 @@ const resetButton = document.getElementById("resetChat");
 
 let isSubmitting = false;
 
-// 初期読み込み時にチャット履歴を取得
+// チャット履歴の読み込み
 async function loadChatHistory() {
     try {
-        const messages = await getChatHistory(3); // questionId = 3
-        chatContainer.innerHTML = ''; // Clear existing messages
+        const messages = await getChatHistory(3);  // questionId = 3
+        chatContainer.innerHTML = '';
         messages.forEach(msg => {
             addMessage(msg.message, msg.type);
         });
@@ -32,11 +32,10 @@ async function sendMessage() {
     }
 
     isSubmitting = true;
-    questionInput.disabled = true;
-    sendButton.disabled = true;
+    updateUIState(true);
 
     try {
-        // ユーザーメッセージをFirestoreに保存
+        // ユーザーメッセージを保存
         await saveMessage(message, 'user', 3);
         addMessage(message, "user");
 
@@ -45,7 +44,10 @@ async function sendMessage() {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ userMessage: message, questionId: 3 })
+            body: JSON.stringify({ 
+                userMessage: message, 
+                questionId: 3 
+            })
         });
 
         if (!response.ok) {
@@ -53,18 +55,23 @@ async function sendMessage() {
         }
 
         const data = await response.json();
-        // AIの応答をFirestoreに保存
+        // AIの応答を保存
         await saveMessage(data.reply, 'ai', 3);
         addMessage(data.reply, "ai");
+
     } catch (error) {
         console.error("Error:", error);
         addMessage("エラーが発生しました。もう一度お試しください。", "system");
     } finally {
-        isSubmitting = false;
-        questionInput.disabled = false;
-        sendButton.disabled = false;
+        updateUIState(false);
         questionInput.value = "";
     }
+}
+
+function updateUIState(disabled) {
+    isSubmitting = disabled;
+    questionInput.disabled = disabled;
+    sendButton.disabled = disabled;
 }
 
 function addMessage(content, type) {
@@ -82,6 +89,7 @@ resetButton.addEventListener("click", () => {
         chatContainer.innerHTML = "";
     }
 });
+
 questionInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -89,5 +97,5 @@ questionInput.addEventListener("keypress", (e) => {
     }
 });
 
-// 初期読み込み時にチャット履歴を取得
+// 初期読み込み
 document.addEventListener('DOMContentLoaded', loadChatHistory);
