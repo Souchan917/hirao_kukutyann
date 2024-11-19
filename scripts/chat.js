@@ -14,9 +14,13 @@ document.getElementById('sendQuestion').addEventListener('click', async () => {
             },
             body: JSON.stringify({
                 userMessage: question,
-                questionId: 3 // 必要に応じて問題IDを変更
+                questionId: 3 // 必要に応じて変更可能
             })
         });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
 
         const data = await response.json();
         addMessage(data.reply, 'ai');
