@@ -1,9 +1,9 @@
+// Dynamic import for node-fetch
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 module.exports = async (req, res) => {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+    console.log("--- Incoming Request ---");
+    console.log("Request Body:", req.body);
 
     const { userMessage, questionId } = req.body;
 
@@ -13,7 +13,10 @@ module.exports = async (req, res) => {
 
     const prompt = prompts[questionId] || "Default prompt for your game.";
 
+    console.log("Prompt Selected:", prompt);
+
     try {
+        console.log("Preparing to send request to OpenAI API...");
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -29,15 +32,21 @@ module.exports = async (req, res) => {
             })
         });
 
+        console.log("Request sent to OpenAI API. Awaiting response...");
         const data = await response.json();
+        console.log("Response from OpenAI API:", data);
 
-        if (data.choices && data.choices.length > 0) {
-            res.status(200).json({ reply: data.choices[0].message.content });
-        } else {
-            throw new Error('Invalid response from OpenAI API');
+        if (!response.ok) {
+            console.error("OpenAI API returned an error:", data);
+            return res.status(response.status).json({ error: data });
         }
+
+        console.log("Sending AI response back to client...");
+        res.status(200).json({ reply: data.choices[0].message.content });
     } catch (error) {
-        console.error('Error communicating with OpenAI API:', error);
+        console.error("Error communicating with OpenAI API:", error);
         res.status(500).json({ error: 'Failed to fetch AI response' });
+    } finally {
+        console.log("--- Request Completed ---");
     }
 };
