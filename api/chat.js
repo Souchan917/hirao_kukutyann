@@ -1,36 +1,44 @@
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
+    console.log('Request body:', req.body);
+
     const { userMessage, questionId } = req.body;
-    const apiKey = process.env.OPENAI_API_KEY; // 環境変数からキーを取得
+    const prompts = {
+        1: 'What is the capital of France?',
+        2: 'What is 2 + 2?',
+        3: 'Ask me about animals.'
+    };
+
+    const prompt = prompts[questionId] || 'Default prompt.';
+    const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
-        return res.status(500).json({ error: 'OpenAI API key is not configured' });
+        console.error('OPENAI_API_KEY is not set');
+        return res.status(500).json({ error: 'Server configuration error: API key is missing.' });
     }
 
     try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('https://api.openai.com/v1/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
+                'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
-                messages: [
-                    { role: 'system', content: 'You are an AI solving riddles.' },
-                    { role: 'user', content: userMessage },
-                ],
-            }),
+                model: 'text-davinci-003',
+                prompt: `${prompt}\n\nUser: ${userMessage}\nAI:`,
+                max_tokens: 50
+            })
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`OpenAI API error: ${errorText}`);
+            throw new Error(`OpenAI API error: ${response.statusText}`);
         }
 
         const data = await response.json();
-        res.status(200).json({ reply: data.choices[0].message.content });
+        console.log('OpenAI response:', data);
+        res.status(200).json({ reply: data.choices[0].text.trim() });
     } catch (error) {
         console.error('Error communicating with OpenAI:', error.message);
         res.status(500).json({ error: 'Failed to fetch AI response' });
