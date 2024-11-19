@@ -1,11 +1,26 @@
 // frontend-chat.js
-const apiUrl = "/api/chat";
+import { saveMessage, getChatHistory } from '../libs/firebaseUtils';
+
 const chatContainer = document.getElementById("chatContainer");
 const questionInput = document.getElementById("questionInput");
 const sendButton = document.getElementById("sendQuestion");
 const resetButton = document.getElementById("resetChat");
 
 let isSubmitting = false;
+
+// 初期読み込み時にチャット履歴を取得
+async function loadChatHistory() {
+    try {
+        const messages = await getChatHistory(3); // questionId = 3
+        chatContainer.innerHTML = ''; // Clear existing messages
+        messages.forEach(msg => {
+            addMessage(msg.message, msg.type);
+        });
+    } catch (error) {
+        console.error('Error loading chat history:', error);
+        addMessage('チャット履歴の読み込みに失敗しました。', 'system');
+    }
+}
 
 async function sendMessage() {
     if (isSubmitting) return;
@@ -17,62 +32,62 @@ async function sendMessage() {
     }
 
     isSubmitting = true;
-    updateUIState(true);
-    addMessage(message, "user");
+    questionInput.disabled = true;
+    sendButton.disabled = true;
 
     try {
-        const response = await fetch(apiUrl, {
+        // ユーザーメッセージをFirestoreに保存
+        await saveMessage(message, 'user', 3);
+        addMessage(message, "user");
+
+        const response = await fetch("/api/chat", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ 
-                userMessage: message, 
-                questionId: 3 
-            })
+            body: JSON.stringify({ userMessage: message, questionId: 3 })
         });
 
-        const data = await response.json();
-        
         if (!response.ok) {
-            throw new Error(data.error || `エラーが発生しました（${response.status}）`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        const data = await response.json();
+        // AIの応答をFirestoreに保存
+        await saveMessage(data.reply, 'ai', 3);
         addMessage(data.reply, "ai");
     } catch (error) {
         console.error("Error:", error);
-        addMessage("エラーが発生しました。しばらく待ってから再度お試しください。", "ai");
+        addMessage("エラーが発生しました。もう一度お試しください。", "system");
     } finally {
-        updateUIState(false);
+        isSubmitting = false;
+        questionInput.disabled = false;
+        sendButton.disabled = false;
         questionInput.value = "";
-    }
-}
-
-function updateUIState(disabled) {
-    isSubmitting = disabled;
-    questionInput.disabled = disabled;
-    sendButton.disabled = disabled;
-}
-
-function resetChat() {
-    if (confirm("チャットをリセットしてもよろしいですか？")) {
-        chatContainer.innerHTML = "";
     }
 }
 
 function addMessage(content, type) {
     const messageDiv = document.createElement("div");
-    messageDiv.className = `message ${type}-message`;
     messageDiv.textContent = content;
+    messageDiv.className = `message ${type}-message`;
     chatContainer.appendChild(messageDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
+// イベントリスナーの設定
 sendButton.addEventListener("click", sendMessage);
-resetButton.addEventListener("click", resetChat);
+resetButton.addEventListener("click", () => {
+    if (confirm("チャットをリセットしてもよろしいですか？")) {
+        chatContainer.innerHTML = "";
+    }
+});
 questionInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         sendMessage();
     }
 });
+
+// 初期読み込み時にチャット履歴を取得
+document.addEventListener('DOMContentLoaded', loadChatHistory);
