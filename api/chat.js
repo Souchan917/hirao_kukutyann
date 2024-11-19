@@ -2,17 +2,21 @@
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
-    // API keyの存在チェック
-    if (!process.env.OPENAI_API_KEY) {
+    // 環境変数のチェック
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
         console.error('OpenAI API key is not configured');
-        return res.status(500).json({ error: 'OpenAI API key is not configured' });
+        return res.status(500).json({ 
+            error: 'サーバーの設定が不完全です。管理者に連絡してください。',
+            details: 'OpenAI API key is not configured'
+        });
     }
 
     const { userMessage, questionId } = req.body;
 
     // 入力値の検証
     if (!userMessage || typeof userMessage !== 'string') {
-        return res.status(400).json({ error: 'Invalid user message' });
+        return res.status(400).json({ error: '無効なメッセージです' });
     }
 
     const prompts = {
@@ -27,7 +31,7 @@ export default async function handler(req, res) {
 
     const prompt = prompts[questionId];
     if (!prompt) {
-        return res.status(400).json({ error: 'Invalid question ID' });
+        return res.status(400).json({ error: '無効な質問IDです' });
     }
 
     try {
@@ -35,7 +39,7 @@ export default async function handler(req, res) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+                'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
                 model: "gpt-3.5-turbo",
@@ -59,7 +63,7 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ 
-            error: 'Failed to fetch AI response',
+            error: 'AIからの応答の取得に失敗しました',
             details: error.message 
         });
     }
