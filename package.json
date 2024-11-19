@@ -1,15 +1,11 @@
 {
-  "name": "hirao_kukutyann",
+  "name": "hirao-kukutyann",
   "version": "1.0.0",
-  "type": "module", 
-  "description": "A simple chat application using Firebase and Vercel",
-  "main": "chat.js",
-  "scripts": {
-    "start": "node scripts/chat.js"
-  },
+  "type": "module",
   "dependencies": {
     "node-fetch": "^3.3.2"
   },
-  "author": "Hirao Kukutyann",
-  "license": "ISC"
+  "scripts": {
+    "start": "node server.js"
+  }
 }

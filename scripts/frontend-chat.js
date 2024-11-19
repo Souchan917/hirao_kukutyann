@@ -1,40 +1,68 @@
-document.getElementById('sendQuestion').addEventListener('click', async () => {
-    const question = document.getElementById('questionInput').value.trim();
+const apiUrl = "/api/chat";
+const chatContainer = document.getElementById("chatContainer");
+const questionInput = document.getElementById("questionInput");
+const sendButton = document.getElementById("sendQuestion");
+const resetButton = document.getElementById("resetChat");
 
-    if (!question) {
-        alert('質問を入力してください！');
+let isSubmitting = false;
+
+async function sendMessage() {
+    if (isSubmitting) return;
+
+    const message = questionInput.value.trim();
+    if (!message) {
+        alert("Please enter a question.");
         return;
     }
 
+    isSubmitting = true;
+    questionInput.disabled = true;
+    sendButton.disabled = true;
+
+    addMessage(message, "user");
+
     try {
-        const response = await fetch('/api/chat', {
-            method: 'POST',
+        const response = await fetch(apiUrl, {
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json'
+                "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                userMessage: question,
-                questionId: 3 // 必要に応じて変更可能
-            })
+            body: JSON.stringify({ userMessage: message, questionId: 3 })
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        addMessage(data.reply, 'ai');
+        addMessage(data.reply, "ai");
     } catch (error) {
-        console.error('Error:', error);
-        alert('エラーが発生しました。もう一度お試しください。');
+        console.error("Error fetching AI response:", error.message);
+        addMessage("An error occurred. Please try again later.", "ai");
+    } finally {
+        isSubmitting = false;
+        questionInput.disabled = false;
+        sendButton.disabled = false;
+        questionInput.value = "";
     }
-});
+}
+
+function resetChat() {
+    if (confirm("Are you sure you want to reset the chat?")) {
+        chatContainer.innerHTML = "";
+    }
+}
 
 function addMessage(content, type) {
-    const chatContainer = document.getElementById('chatContainer');
-    const messageDiv = document.createElement('div');
+    const messageDiv = document.createElement("div");
     messageDiv.textContent = content;
-    messageDiv.className = type === 'user' ? 'user-message' : 'ai-message';
+    messageDiv.className = type === "user" ? "user-message" : "ai-message";
     chatContainer.appendChild(messageDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
+
+sendButton.addEventListener("click", sendMessage);
+resetButton.addEventListener("click", resetChat);
+questionInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendMessage();
+});
