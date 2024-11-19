@@ -498,28 +498,12 @@
         <h1>Q3 AIウミガメのスープ！
         </h1>
         <h3>AIに質問をすることで答えの単語に設定されている「動物の名前」を突き止めよう!!!</h3>
-        <h3>AIは「はい」「いいえ」「わかりません」と答えます</h3>
-        <h4>質問例：「その動物は海で生活していますか？」</h4>
-        <h4>質問例：「色は白いですか？」</h4>
-        <h4>質問例：「答えは４文字ですか？」</h4>
-        <p>答えの単語の頭文字などをローラーで探査することはおやめください。サーバーに負荷がかかってしまいます。折角なのでちゃんと考えて当ててみましょう！！</p>
-        <p>AIはうそをつく可能性もあります</p>
-       
+
 
         <div class="chat-container" id="chatContainer"></div>
         <div class="input-section">
             <div class="input-section-inner">
-                <select id="problemSelector" class="problem-selector">
-                    <option value="1">Q1</option>
-                    <option value="2">Q2</option>
-                    <option value="3">Q3</option>
-                    <option value="4">Q4</option>
-                    <option value="5">Q5</option>
-                    <option value="6">Q6</option>
-                    <option value="7">Q7</option>
-                    <option value="8">FINAL</option>
 
-                </select>
                 <input type="text" class="question-input" id="questionInput" placeholder="質問を入力してください...">
                 <button class="submit-button" id="sendQuestion">質問する</button>
                 <button class="reset-button" id="resetChat">リセット</button>
@@ -535,15 +519,6 @@
             <button type="button" class="submit-button" id="submitAnswer">送信</button>
         </div>
     </div>    
-    <!-- 一口メモ セクション -->
-    <div class="memo-section">
-        <h2>一口メモ！！</h2>
-        <p>なんとAIとチャットをすることができます！！！</p>
-        <p>設定を付け加えることで謎解き用のAIを実装しています！！すごいですよね！！</p>
-        <p>すべて独立した会話として設定しています。一つ一つの質問を丁寧にすると正確な結果が返ってくることが多いぞ！！</p>
-
-        <img src="https://souchan917.github.io/webnazorikaishita/assets/images/Q3code.png" alt="一口メモの画像" class="memo-image">
-    </div>
 
     <script>
         const vercelFunctionUrl = "https://hirao-kukutyann.vercel.app/api/chat";
