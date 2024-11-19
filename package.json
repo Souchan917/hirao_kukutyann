@@ -1,6 +1,7 @@
 {
   "name": "hirao_kukutyann",
   "version": "1.0.0",
+  "type": "module", 
   "description": "A simple chat application using Firebase and Vercel",
   "main": "chat.js",
   "scripts": {

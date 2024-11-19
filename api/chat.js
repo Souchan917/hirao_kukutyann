@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 module.exports = async (req, res) => {
     if (req.method !== 'POST') {
