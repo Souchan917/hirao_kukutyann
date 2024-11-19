@@ -1,78 +1,63 @@
+// index.html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIウミガメのスープ</title>
+    <title>Q3 AIウミガメのスープ！</title>
     <style>
-        .chat-container {
-            max-width: 600px;
-            margin: 20px auto;
+        .content-container {
+            max-width: 800px;
+            margin: 0 auto;
             padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
+        }
+        .chat-container {
             height: 400px;
+            border: 1px solid #ccc;
             overflow-y: auto;
-            background-color: #f9f9f9;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f9f9f9;
         }
         .message {
             margin: 10px 0;
             padding: 10px;
-            border-radius: 8px;
+            border-radius: 5px;
         }
         .user-message {
-            background-color: #e6e6fa;
-            margin-left: auto;
-            text-align: right;
-            max-width: 80%;
+            background: #e3f2fd;
+            margin-left: 20%;
         }
         .ai-message {
-            background-color: #f0f0ff;
-            margin-right: auto;
-            text-align: left;
-            max-width: 80%;
+            background: #f5f5f5;
+            margin-right: 20%;
         }
         .input-container {
-            max-width: 600px;
-            margin: 20px auto;
             display: flex;
             gap: 10px;
         }
         #questionInput {
-            flex-grow: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
+            flex: 1;
+            padding: 8px;
         }
         button {
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
+            padding: 8px 16px;
             cursor: pointer;
-            font-size: 16px;
         }
-        button:hover {
-            background-color: #45a049;
-        }
-        .reset-button {
-            background-color: #f44336;
-        }
-        .reset-button:hover {
-            background-color: #e53935;
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
     <div class="content-container">
         <h1>Q3 AIウミガメのスープ！</h1>
-        <div class="chat-container" id="chatContainer"></div>
+        <div id="chatContainer" class="chat-container"></div>
         <div class="input-container">
-            <input type="text" id="questionInput" placeholder="質問を入力してください...">
+            <input type="text" id="questionInput" placeholder="質問を入力してください">
             <button id="sendQuestion">質問する</button>
-            <button id="resetChat" class="reset-button">リセット</button>
+            <button id="resetChat">リセット</button>
         </div>
     </div>
     <script src="/scripts/frontend-chat.js"></script>
