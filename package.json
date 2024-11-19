@@ -1,14 +1,14 @@
 {
   "name": "hirao_kukutyann",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "A simple chat application using Firebase and Vercel",
+  "main": "chat.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node scripts/chat.js"
   },
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "node-fetch": "^3.3.2"
-  }
+  },
+  "author": "Hirao Kukutyann",
+  "license": "ISC"
 }
