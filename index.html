@@ -13,6 +13,7 @@
             border-radius: 8px;
             height: 400px;
             overflow-y: auto;
+            background-color: #f9f9f9;
         }
         .message {
             margin: 10px 0;
@@ -21,11 +22,15 @@
         }
         .user-message {
             background-color: #e6e6fa;
-            margin-left: 20%;
+            margin-left: auto;
+            text-align: right;
+            max-width: 80%;
         }
         .ai-message {
             background-color: #f0f0ff;
-            margin-right: 20%;
+            margin-right: auto;
+            text-align: left;
+            max-width: 80%;
         }
         .input-container {
             max-width: 600px;
@@ -35,20 +40,28 @@
         }
         #questionInput {
             flex-grow: 1;
-            padding: 8px;
+            padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            font-size: 16px;
         }
         button {
-            padding: 8px 16px;
+            padding: 10px 20px;
             background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 16px;
         }
         button:hover {
             background-color: #45a049;
+        }
+        .reset-button {
+            background-color: #f44336;
+        }
+        .reset-button:hover {
+            background-color: #e53935;
         }
     </style>
 </head>
@@ -56,10 +69,12 @@
     <div class="content-container">
         <h1>Q3 AIウミガメのスープ！</h1>
         <div class="chat-container" id="chatContainer"></div>
-        <input type="text" class="question-input" id="questionInput" placeholder="質問を入力してください...">
-        <button class="submit-button" id="sendQuestion">質問する</button>
-        <button class="reset-button" id="resetChat">リセット</button>
+        <div class="input-container">
+            <input type="text" id="questionInput" placeholder="質問を入力してください...">
+            <button id="sendQuestion">質問する</button>
+            <button id="resetChat" class="reset-button">リセット</button>
+        </div>
     </div>
-    <script src="/scripts/chat.js"></script>
+    <script src="/scripts/frontend-chat.js"></script>
 </body>
 </html>
