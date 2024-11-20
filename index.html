@@ -60,7 +60,7 @@
 </head>
 <body>
     <div class="content-container">
-        <h1>AI-CHATf</h1>
+        <h1>AI-CHATg</h1>
         <div id="chatContainer" class="chat-container"></div>
         <div class="input-container">
             <input type="text" id="questionInput" placeholder="質問を入力してください">
@@ -69,7 +69,9 @@
         </div>
     </div>
 
-
+    <!-- ESMのcrossorginを追加 -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js" crossorigin="anonymous"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js" crossorigin="anonymous"></script>
     
     <!-- メインスクリプト -->
     <script type="module" src="/scripts/frontend-chat.js"></script>

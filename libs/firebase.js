@@ -1,6 +1,16 @@
 // libs/firebase.js
-import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDocs, collection, query, orderBy } from 'firebase/firestore';
+
+// インポートパスを修正
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { 
+    getFirestore, 
+    doc, 
+    setDoc, 
+    getDocs, 
+    collection, 
+    query, 
+    orderBy 
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // Firebase設定
 const firebaseConfig = {
@@ -55,5 +65,5 @@ export async function getChatHistory(limit = 50) {
     }
 }
 
-// エクスポートが必要な場合のためにdbもエクスポート
+// dbをエクスポート
 export { db };
