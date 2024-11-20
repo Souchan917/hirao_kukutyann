@@ -31,6 +31,10 @@
             background: #f5f5f5;
             margin-right: 20%;
         }
+        .system-message {
+            background: #ffebee;
+            text-align: center;
+        }
         .input-container {
             display: flex;
             gap: 10px;
@@ -59,6 +63,11 @@
             <button id="resetChat">リセット</button>
         </div>
     </div>
+    <!-- Firebase App (必須) -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
+    <!-- Firestore -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
+    <!-- あなたのスクリプト -->
     <script type="module" src="/scripts/frontend-chat.js"></script>
 </body>
 </html>

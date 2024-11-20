@@ -1,3 +1,6 @@
+// frontend-chat.js
+import { saveMessage, getChatHistory } from '../libs/firebaseUtils.js';
+
 const apiUrl = "/api/chat";
 const chatContainer = document.getElementById("chatContainer");
 const questionInput = document.getElementById("questionInput");
@@ -6,12 +9,26 @@ const resetButton = document.getElementById("resetChat");
 
 let isSubmitting = false;
 
+// 初期読み込み時にチャット履歴を表示
+async function loadChatHistory() {
+    try {
+        const messages = await getChatHistory(3); // questionId = 3
+        chatContainer.innerHTML = ''; // 既存のメッセージをクリア
+        messages.forEach(msg => {
+            addMessage(msg.message, msg.type);
+        });
+    } catch (error) {
+        console.error('チャット履歴の読み込みに失敗:', error);
+        addMessage('チャット履歴の読み込みに失敗しました。', 'system');
+    }
+}
+
 async function sendMessage() {
     if (isSubmitting) return;
 
     const message = questionInput.value.trim();
     if (!message) {
-        alert("Please enter a question.");
+        alert("質問を入力してください。");
         return;
     }
 
@@ -19,9 +36,12 @@ async function sendMessage() {
     questionInput.disabled = true;
     sendButton.disabled = true;
 
-    addMessage(message, "user");
-
     try {
+        // ユーザーのメッセージをFirestoreに保存
+        await saveMessage(message, 'user', 3);
+        addMessage(message, "user");
+
+        // AI応答を取得
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: {
@@ -35,10 +55,14 @@ async function sendMessage() {
         }
 
         const data = await response.json();
+        
+        // AIの応答をFirestoreに保存
+        await saveMessage(data.reply, 'ai', 3);
         addMessage(data.reply, "ai");
+
     } catch (error) {
-        console.error("Error fetching AI response:", error.message);
-        addMessage("An error occurred. Please try again later.", "ai");
+        console.error("Error:", error);
+        addMessage("エラーが発生しました。もう一度お試しください。", "system");
     } finally {
         isSubmitting = false;
         questionInput.disabled = false;
@@ -47,22 +71,29 @@ async function sendMessage() {
     }
 }
 
-function resetChat() {
-    if (confirm("Are you sure you want to reset the chat?")) {
-        chatContainer.innerHTML = "";
-    }
-}
-
 function addMessage(content, type) {
     const messageDiv = document.createElement("div");
     messageDiv.textContent = content;
-    messageDiv.className = type === "user" ? "user-message" : "ai-message";
+    messageDiv.className = `message ${type}-message`;
     chatContainer.appendChild(messageDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
+async function resetChat() {
+    if (confirm("チャットをリセットしてもよろしいですか？")) {
+        chatContainer.innerHTML = "";
+    }
+}
+
+// イベントリスナーの設定
 sendButton.addEventListener("click", sendMessage);
 resetButton.addEventListener("click", resetChat);
 questionInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") sendMessage();
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
 });
+
+// ページ読み込み時にチャット履歴を読み込む
+document.addEventListener('DOMContentLoaded', loadChatHistory);
