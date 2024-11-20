@@ -1,6 +1,67 @@
 // frontend-chat.js
-import { saveMessage, getChatHistory } from '../libs/firebaseUtils.js';
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, getDocs, serverTimestamp } from 'firebase/firestore';
 
+// Firebaseの設定
+const firebaseConfig = {
+    apiKey: "AIzxSyACzVcf8eNzcu698PdbKKRVcbStH821avc",
+    authDomain: "kukutyan-f48ae.firebaseapp.com",
+    projectId: "kukutyan-f48ae",
+    storageBucket: "kukutyan-f48ae.firebasestorage.app",
+    messagingSenderId: "894594120998",
+    appId: "1:894594120998:web:9160722e1d27e98afbd5e7",
+    measurementId: "G-8F3DC6V2M7"
+};
+
+// Firebase初期化
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Firebase関連の関数
+async function saveMessage(message, type, questionId) {
+    try {
+        const docRef = await addDoc(collection(db, 'chats'), {
+            message,
+            type,
+            questionId,
+            timestamp: serverTimestamp()
+        });
+        console.log('Message saved with ID:', docRef.id);
+        return docRef.id;
+    } catch (error) {
+        console.error('Error saving message:', error);
+        throw error;
+    }
+}
+
+async function getChatHistory(questionId, limitCount = 50) {
+    try {
+        const q = query(
+            collection(db, 'chats'),
+            orderBy('timestamp', 'desc')
+        );
+
+        const querySnapshot = await getDocs(q);
+        const messages = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.questionId === questionId) {
+                messages.push({
+                    id: doc.id,
+                    ...data
+                });
+            }
+        });
+
+        return messages.reverse();
+    } catch (error) {
+        console.error('Error getting chat history:', error);
+        throw error;
+    }
+}
+
+// UI要素の取得
 const apiUrl = "/api/chat";
 const chatContainer = document.getElementById("chatContainer");
 const questionInput = document.getElementById("questionInput");
@@ -9,11 +70,11 @@ const resetButton = document.getElementById("resetChat");
 
 let isSubmitting = false;
 
-// 初期読み込み時にチャット履歴を表示
+// チャット履歴の読み込み
 async function loadChatHistory() {
     try {
-        const messages = await getChatHistory(3); // questionId = 3
-        chatContainer.innerHTML = ''; // 既存のメッセージをクリア
+        const messages = await getChatHistory(3);
+        chatContainer.innerHTML = '';
         messages.forEach(msg => {
             addMessage(msg.message, msg.type);
         });
@@ -37,11 +98,10 @@ async function sendMessage() {
     sendButton.disabled = true;
 
     try {
-        // ユーザーのメッセージをFirestoreに保存
+        // ユーザーメッセージをFirestoreに保存
         await saveMessage(message, 'user', 3);
         addMessage(message, "user");
 
-        // AI応答を取得
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: {
@@ -79,7 +139,8 @@ function addMessage(content, type) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-async function resetChat() {
+// チャットのリセット
+function resetChat() {
     if (confirm("チャットをリセットしてもよろしいですか？")) {
         chatContainer.innerHTML = "";
     }
