@@ -1,5 +1,6 @@
 // frontend-chat.js
-import { saveMessage } from '../libs/firebaseUtils.js';
+import { saveMessage, getChatHistory } from "../libs/firebaseUtils.js";
+
 
 console.log("=== frontend-chat.js 読み込み開始 ===");
 

@@ -1,45 +1,20 @@
-// libs/firebaseUtils.js
-import { collection, addDoc, query, orderBy, getDocs, serverTimestamp } from 'firebase/firestore';
-import { db } from './firebase.js';  // .js拡張子を追加
+import { doc, setDoc, getDocs, collection, query, orderBy } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
+import { db } from "./firebase.js";
 
-export async function saveMessage(message, type, questionId) {
-    try {
-        const docRef = await addDoc(collection(db, 'chats'), {
-            message,
-            type,
-            questionId,
-            timestamp: serverTimestamp()
-        });
-        console.log('Message saved with ID:', docRef.id);
-        return docRef.id;
-    } catch (error) {
-        console.error('Error saving message:', error);
-        throw error;
-    }
+// メッセージを保存する
+export async function saveMessage(content, type, questionId) {
+    const messageRef = doc(collection(db, "chatLogs"));
+    await setDoc(messageRef, {
+        content: content,
+        type: type,
+        questionId: questionId,
+        timestamp: new Date()
+    });
 }
 
-export async function getChatHistory(questionId, limitCount = 50) {
-    try {
-        const q = query(
-            collection(db, 'chats'),
-            orderBy('timestamp', 'desc')
-        );
-
-        const querySnapshot = await getDocs(q);
-        const messages = [];
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (data.questionId === questionId) {
-                messages.push({
-                    id: doc.id,
-                    ...data
-                });
-            }
-        });
-
-        return messages.reverse();
-    } catch (error) {
-        console.error('Error getting chat history:', error);
-        throw error;
-    }
+// チャット履歴を取得する
+export async function getChatHistory(limit = 50) {
+    const chatQuery = query(collection(db, "chatLogs"), orderBy("timestamp", "asc"));
+    const querySnapshot = await getDocs(chatQuery);
+    return querySnapshot.docs.map(doc => doc.data());
 }
