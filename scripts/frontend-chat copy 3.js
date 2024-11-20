@@ -1,7 +1,7 @@
-// frontend-chat.js
-import { saveMessage, getChatHistory } from "../libs/firebaseUtils.js";
+// インポート部分だけを変更
+import { saveMessage, getChatHistory } from "../libs/firebase.js";  // firebaseUtils.js から firebase.js に変更
 
-
+// 以降のコードは全く同じ
 console.log("=== frontend-chat.js 読み込み開始 ===");
 
 const apiUrl = "/api/chat";
