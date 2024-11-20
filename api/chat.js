@@ -1,11 +1,13 @@
+// api/chat.js
 import fetch from 'node-fetch';
 
 export default async (req, res) => {
+    console.log('API endpoint called');
     console.log('Request body:', req.body);
 
     const { userMessage, questionId } = req.body;
+    console.log('Extracted message and questionId:', { userMessage, questionId });
     
-    // ウミガメのスープ用のプロンプトを設定
     const prompts = {
         3: `あなたはAIウミガメのスープというゲームのホストです。
             プレイヤーから質問を受け付け、「はい」「いいえ」「それは関係ありません」のいずれかで答えてください。
@@ -22,6 +24,7 @@ export default async (req, res) => {
     }
 
     try {
+        console.log('Sending request to OpenAI...');
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -39,6 +42,7 @@ export default async (req, res) => {
             })
         });
 
+        console.log('OpenAI response status:', response.status);
         if (!response.ok) {
             const errorData = await response.json();
             console.error('OpenAI error details:', errorData);
@@ -46,10 +50,11 @@ export default async (req, res) => {
         }
 
         const data = await response.json();
-        console.log('OpenAI response:', data);
+        console.log('OpenAI response data:', data);
+        
         res.status(200).json({ reply: data.choices[0].message.content });
     } catch (error) {
-        console.error('Error communicating with OpenAI:', error);
+        console.error('Error in chat endpoint:', error);
         res.status(500).json({ 
             error: 'AIからの応答の取得に失敗しました',
             details: error.message 
