@@ -7,7 +7,6 @@ import {
     handleApproval,
     handleDiscussion,
     handleChatting,
-    processMessage,
     handleError
 } from './handlers/index.js';
 
