@@ -21,6 +21,8 @@ export default async (req, res) => {
             分類:
         `;
 
+        console.log("Classification Prompt:\n", classifyPrompt);
+
         const classifyResponse = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -33,6 +35,8 @@ export default async (req, res) => {
                 max_tokens: 50,
             }),
         });
+
+        console.log("Classification API response status:", classifyResponse.status);
 
         if (!classifyResponse.ok) {
             const errorData = await classifyResponse.json();
@@ -52,6 +56,8 @@ export default async (req, res) => {
             この分類に基づいて適切な応答を作成してください。応答は共感的で、200文字以内に収めてください。
         `;
 
+        console.log("Response Generation Prompt:\n", responsePrompt);
+
         const responseGeneration = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -65,6 +71,8 @@ export default async (req, res) => {
             }),
         });
 
+        console.log("Response Generation API response status:", responseGeneration.status);
+
         if (!responseGeneration.ok) {
             const errorData = await responseGeneration.json();
             console.error("Response generation API error details:", errorData);
@@ -73,10 +81,20 @@ export default async (req, res) => {
 
         const responseData = await responseGeneration.json();
         const finalResponse = responseData.choices[0].message.content.trim();
-        console.log("Generated response:", finalResponse);
+
+        console.log("Generated AI Response:\n", finalResponse);
 
         // 最終応答を返す
-        res.status(200).json({ reply: finalResponse, classification });
+        res.status(200).json({ 
+            reply: finalResponse, 
+            classification,
+            debugInfo: {
+                classificationPrompt: classifyPrompt,
+                classificationResult: classification,
+                responsePrompt: responsePrompt,
+                finalResponse: finalResponse,
+            }
+        });
     } catch (error) {
         console.error("Error in chat endpoint:", error);
         res.status(500).json({
