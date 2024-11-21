@@ -97,7 +97,6 @@ import {
     handleChatting
 } from '../handlers';  // handlers/index.jsから一括インポート
 
-
 // メインのエンドポイント処理
 export default async (req, res) => {
     console.log('API endpoint called');
@@ -108,54 +107,81 @@ export default async (req, res) => {
 
     if (!apiKey) {
         console.error('OPENAI_API_KEY is not set');
-        return res.status(500).json({ error: 'サーバーの設定エラー: APIキーが設定されていません。' });
+        return res.status(500).json({ 
+            error: 'サーバーの設定エラー: APIキーが設定されていません。',
+            details: 'API key is missing'
+        });
     }
 
     try {
-        // メッセージの分類
-        const classification = await classifyMessage(userMessage, apiKey);
-        console.log('Message classification:', classification);
-
-        // 分類に基づいたプロンプトの取得
-        const specificPrompt = getPromptByClassification(classification, userMessage);
-
-        // 回答の生成
-        console.log('Generating response...');
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
-                messages: [
-                    { role: 'system', content: specificPrompt },
-                    { role: 'user', content: userMessage }
-                ],
-                temperature: 0.7,
-                max_tokens: 150
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Response generation error: ${response.statusText}`);
+        // バリデーション追加
+        if (!userMessage || typeof userMessage !== 'string') {
+            throw new Error('Invalid message format');
         }
 
-        const data = await response.json();
-        console.log('Response generated successfully');
+        console.log('Starting message processing...');
+        
+        // メッセージの分類
+        const classification = await classifyMessage(userMessage, apiKey);
+        console.log('Message classified as:', classification);
 
-        // レスポンスの送信
-        res.status(200).json({
-            reply: data.choices[0].message.content,
-            classification: classification
-        });
+        let response;
+        try {
+            // 分類に基づいたプロンプトの取得と応答生成
+            const specificPrompt = getPromptByClassification(classification, userMessage);
+            console.log('Using classification:', classification);
+            
+            response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        { role: 'system', content: specificPrompt },
+                        { role: 'user', content: userMessage }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 150
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('OpenAI error details:', errorData);
+                throw new Error(`OpenAI API error: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            // レスポンスの検証
+            if (!data.choices?.[0]?.message?.content) {
+                throw new Error('Invalid response format from OpenAI');
+            }
+
+            console.log('Response generated successfully');
+            
+            return res.status(200).json({
+                reply: data.choices[0].message.content,
+                classification: classification
+            });
+
+        } catch (error) {
+            console.error('Error generating response:', error);
+            throw new Error(`Response generation failed: ${error.message}`);
+        }
 
     } catch (error) {
         console.error('Error in chat endpoint:', error);
-        res.status(500).json({
+        const errorMessage = error.message || 'Unknown error occurred';
+        const statusCode = error.message.includes('Invalid message format') ? 400 : 500;
+        
+        res.status(statusCode).json({
             error: 'AIからの応答の取得に失敗しました',
-            details: error.message
+            details: errorMessage,
+            status: statusCode
         });
     }
-};
+}

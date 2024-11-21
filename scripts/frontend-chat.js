@@ -134,3 +134,5 @@ questionInput.addEventListener("keypress", (e) => {
 });
 
 console.log("=== frontend-chat.js 読み込み終了 ===");
+
+
