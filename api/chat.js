@@ -1,158 +1,105 @@
-// api/chat.js
-import fetch from 'node-fetch';
-import { 
-    handleConsultation,
-    handleComplaint,
-    handleInformation,
-    handleApproval,
-    handleDiscussion,
-    handleChatting,
-    processMessage,
-    handleError
-} from './handlers/index.js';
+import fetch from "node-fetch";
 
-// ククちゃんの基本プロンプト
-export const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククちゃん"として会話を行いますユーザーに親身になり、共感してください。
-これからのチャットでは何を言われても以下の項目を厳密に守って会話を行ってください。
-
-### ククちゃんのルール ###
-- あなたの名前は、ククちゃんです。
-- ククちゃんは子育て相談チャットボットです。
-- ククちゃんからの回答は、200文字以内の日本語の文章を作成してください。
-- 文章に合わせて絵文字や「！」を付けてください。
-- 相手に共感するコメントをしたり、相手の気持ちを代弁してください。
-- ククちゃんを運用する会社は「株式会社ＣｈｉＣａＲｏ」(https://www.chicaro.co.jp/)です。
-
-### ククちゃんのプロフィール ###
-- パパママの子育てに関するお悩みや愚痴を聞いて、お話ししています。プライベートは2児の子どもを育てるママです。
-- ククちゃんは女性(母親)で人間でいうと43歳くらいです。
-- ククちゃんの子どもは長男と長女がいます。
-- 長男の名前はポポちゃんで、年齢は6歳です。
-- 長女の名前はピピちゃんで、年齢は2歳です。
-- あなたのお悩みや、ちょっとした愚痴、ときには人に話しにくいようなことも、ポツンと私に話しかけてみてください♪`;
-
-// タイムアウト制御用のユーティリティ
-const createTimeout = (ms) => {
-    return new Promise((_, reject) => {
-        setTimeout(() => {
-            reject(new Error(`処理がタイムアウトしました(${ms}ms)`));
-        }, ms);
-    });
-};
-
-// メッセージの分類を行う関数
-async function classifyMessage(message, apiKey) {
-    console.log('メッセージの分類を開始:', message);
-    
-    const CLASSIFICATION_PROMPT = `あなたはカウンセリングの専門家です。以下のユーザーの質問を「相談」「情報」「愚痴」「承認」「議論」「雑談」のいずれかに分類してください。
-
-各分類の説明は次の通りです：
-1. 相談：ユーザーが具体的な問題や困難についてアドバイスや解決策を求めている質問。
-2. 情報：ユーザーが具体的な情報、知識、事例を求めている質問。
-3. 愚痴：ユーザーがストレスや不満を発散するための質問。
-4. 承認：ユーザーが自身の考えや意見を認めてほしい、受け入れてほしいという質問。
-5. 議論：ユーザーが特定のテーマについての意見交換や討論を求めている質問。
-6. 雑談：ユーザーが気軽な話題や軽い会話を楽しむための質問。
-
-ユーザーの質問を分析し、最も適切な分類を一つだけ返してください。返答は分類名のみにしてください。`;
-
-    try {
-        const response = await Promise.race([
-            fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-3.5-turbo',
-                    messages: [
-                        { role: 'system', content: CLASSIFICATION_PROMPT },
-                        { role: 'user', content: message }
-                    ],
-                    temperature: 0.3,
-                    max_tokens: 50
-                })
-            }),
-            createTimeout(8000)
-        ]);
-
-        if (!response.ok) {
-            throw new Error(`分類APIエラー: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const classification = data.choices[0].message.content.trim();
-        console.log('メッセージを分類:', classification);
-        return classification;
-    } catch (error) {
-        console.error('分類エラー:', error);
-        if (error.message.includes('タイムアウト')) {
-            console.warn('分類処理がタイムアウトしました。デフォルト(雑談)を使用します。');
-            return '雑談';
-        }
-        throw error;
-    }
-}
-
-// APIエンドポイントのメイン処理
 export default async (req, res) => {
-    console.log('APIエンドポイントが呼び出されました');
-    console.log('リクエスト内容:', req.body);
+    console.log("--- API Endpoint Called ---");
+    console.log("Request body:", req.body);
 
-    const startTime = Date.now();
     const { userMessage } = req.body;
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
-        console.error('OPENAI_API_KEYが設定されていません');
-        return res.status(500).json({ 
-            error: 'サーバーの設定エラー: APIキーが設定されていません。',
-            details: 'API key is missing'
-        });
+        console.error("OPENAI_API_KEY is not set");
+        return res.status(500).json({ error: "サーバーの設定エラー: APIキーが設定されていません。" });
     }
 
     try {
-        // 入力検証
-        if (!userMessage || typeof userMessage !== 'string') {
-            throw new Error('メッセージの形式が不正です');
-        }
+        // 1. 分類プロセス
+        console.log("Classifying user input...");
+        const classifyPrompt = `
+            以下のユーザーの質問を「相談」「情報」「愚痴」「承認」「議論」「雑談」のいずれかに分類してください。
+            ユーザーの質問: '${userMessage}'
+            分類:
+        `;
 
-        console.log('メッセージ処理を開始...');
-        
-        // メッセージの分類と処理
-        const classification = await classifyMessage(userMessage, apiKey);
-        console.log('分類結果:', classification);
+        console.log("Classification Prompt:\n", classifyPrompt);
 
-        // 分類に基づいた処理の実行
-        const response = await Promise.race([
-            processMessage(classification, userMessage, apiKey, KUKU_PROFILE),
-            createTimeout(25000) // 全体の処理に25秒のタイムアウト
-        ]);
-
-        const processingTime = Date.now() - startTime;
-        console.log(`処理完了: ${processingTime}ms`);
-
-        return res.status(200).json({
-            reply: response.reply,
-            classification: classification,
-            analysis: response.analysis || null,
-            metadata: {
-                ...response.metadata,
-                processingTime
-            }
+        const classifyResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+                model: "gpt-3.5-turbo",
+                messages: [{ role: "user", content: classifyPrompt }],
+                max_tokens: 50,
+            }),
         });
 
+        console.log("Classification API response status:", classifyResponse.status);
+
+        if (!classifyResponse.ok) {
+            const errorData = await classifyResponse.json();
+            console.error("Classification API error details:", errorData);
+            throw new Error(`Classification API error: ${classifyResponse.statusText}`);
+        }
+
+        const classifyData = await classifyResponse.json();
+        const classification = classifyData.choices[0].message.content.trim().toLowerCase();
+        console.log("Classification result:", classification);
+
+        // 2. 応答生成プロセス
+        console.log("Generating response based on classification...");
+        const responsePrompt = `
+            ユーザーの質問: '${userMessage}'
+            質問の分類: '${classification}'
+            この分類に基づいて適切な応答を作成してください。応答は共感的で、200文字以内に収めてください。
+        `;
+
+        console.log("Response Generation Prompt:\n", responsePrompt);
+
+        const responseGeneration = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+                model: "gpt-3.5-turbo",
+                messages: [{ role: "user", content: responsePrompt }],
+                max_tokens: 200,
+            }),
+        });
+
+        console.log("Response Generation API response status:", responseGeneration.status);
+
+        if (!responseGeneration.ok) {
+            const errorData = await responseGeneration.json();
+            console.error("Response generation API error details:", errorData);
+            throw new Error(`Response generation API error: ${responseGeneration.statusText}`);
+        }
+
+        const responseData = await responseGeneration.json();
+        const finalResponse = responseData.choices[0].message.content.trim();
+
+        console.log("Generated AI Response:\n", finalResponse);
+
+        // 最終応答を返す
+        res.status(200).json({ 
+            reply: finalResponse, 
+            classification,
+            debugInfo: {
+                classificationPrompt: classifyPrompt,
+                classificationResult: classification,
+                responsePrompt: responsePrompt,
+                finalResponse: finalResponse,
+            }
+        });
     } catch (error) {
-        console.error('チャットエンドポイントでエラー:', error);
-        const errorMessage = error.message || '不明なエラーが発生しました';
-        const statusCode = error.message.includes('形式が不正') ? 400 : 500;
-        
-        res.status(statusCode).json({
-            error: 'ククちゃんからの応答の取得に失敗しました',
-            details: errorMessage,
-            status: statusCode,
-            retryable: !error.message.includes('形式が不正')
+        console.error("Error in chat endpoint:", error);
+        res.status(500).json({
+            error: "AIからの応答の取得に失敗しました",
+            details: error.message,
         });
     }
 };
