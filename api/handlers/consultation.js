@@ -71,7 +71,7 @@ export async function handleConsultation(userInput, apiKey, KUKU_PROFILE, KUKU_N
             method: 'POST',
             headers: headers,
             body: JSON.stringify({
-                "model": "gpt-4-turbo",
+                "model": "gpt-3.5-turbo",
                 "messages": [{"role": "system", "content": responsePrompt}]
             })
         });
