@@ -97,7 +97,7 @@ import {
     handleChatting
 } from '../handlers';  // handlers/index.jsから一括インポート
 
-// メインのエンドポイント処理
+// APIエンドポイント処理部分のみを示します
 export default async (req, res) => {
     console.log('API endpoint called');
     console.log('Request body:', req.body);
@@ -114,7 +114,7 @@ export default async (req, res) => {
     }
 
     try {
-        // バリデーション追加
+        // バリデーション
         if (!userMessage || typeof userMessage !== 'string') {
             throw new Error('Invalid message format');
         }
@@ -125,52 +125,53 @@ export default async (req, res) => {
         const classification = await classifyMessage(userMessage, apiKey);
         console.log('Message classified as:', classification);
 
+        // 分類に基づいてハンドラーを選択して実行
         let response;
         try {
-            // 分類に基づいたプロンプトの取得と応答生成
-            const specificPrompt = getPromptByClassification(classification, userMessage);
-            console.log('Using classification:', classification);
-            
-            response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-3.5-turbo',
-                    messages: [
-                        { role: 'system', content: specificPrompt },
-                        { role: 'user', content: userMessage }
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 150
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('OpenAI error details:', errorData);
-                throw new Error(`OpenAI API error: ${response.statusText}`);
+            switch (classification) {
+                case '相談':
+                    response = await handleConsultation(userMessage, apiKey, KUKU_PROFILE);
+                    console.log('Consultation handler executed');
+                    break;
+                case '情報':
+                    response = await handleInformation(userMessage, apiKey, KUKU_PROFILE);
+                    console.log('Information handler executed');
+                    break;
+                case '愚痴':
+                    response = await handleComplaint(userMessage, apiKey, KUKU_PROFILE);
+                    console.log('Complaint handler executed');
+                    break;
+                case '承認':
+                    response = await handleApproval(userMessage, apiKey, KUKU_PROFILE);
+                    console.log('Approval handler executed');
+                    break;
+                case '議論':
+                    response = await handleDiscussion(userMessage, apiKey, KUKU_PROFILE);
+                    console.log('Discussion handler executed');
+                    break;
+                case '雑談':
+                    response = await handleChatting(userMessage, apiKey, KUKU_PROFILE);
+                    console.log('Chatting handler executed');
+                    break;
+                default:
+                    // デフォルトの処理（分類不明の場合）
+                    const specificPrompt = getPromptByClassification('雑談', userMessage);
+                    response = await handleChatting(userMessage, apiKey, KUKU_PROFILE);
+                    console.log('Default handler (chatting) executed');
+                    break;
             }
 
-            const data = await response.json();
-            
-            // レスポンスの検証
-            if (!data.choices?.[0]?.message?.content) {
-                throw new Error('Invalid response format from OpenAI');
-            }
-
-            console.log('Response generated successfully');
+            console.log('Handler response:', response);
             
             return res.status(200).json({
-                reply: data.choices[0].message.content,
-                classification: classification
+                reply: response.reply,
+                classification: classification,
+                analysis: response.analysis || null
             });
 
         } catch (error) {
-            console.error('Error generating response:', error);
-            throw new Error(`Response generation failed: ${error.message}`);
+            console.error('Error in handler execution:', error);
+            throw new Error(`Handler execution failed: ${error.message}`);
         }
 
     } catch (error) {
