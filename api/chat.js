@@ -86,6 +86,18 @@ async function classifyMessage(message, apiKey) {
     }
 }
 
+
+// api/chat.js
+import { 
+    handleConsultation,
+    handleComplaint,
+    handleInformation,
+    handleApproval,
+    handleDiscussion,
+    handleChatting
+} from '../handlers';  // handlers/index.jsから一括インポート
+
+
 // メインのエンドポイント処理
 export default async (req, res) => {
     console.log('API endpoint called');
