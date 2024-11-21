@@ -88,6 +88,7 @@ async function classifyMessage(message, apiKey) {
 
 
 // api/chat.js
+import fetch from 'node-fetch';
 import { 
     handleConsultation,
     handleComplaint,
@@ -95,7 +96,7 @@ import {
     handleApproval,
     handleDiscussion,
     handleChatting
-} from '../handlers';  // handlers/index.jsから一括インポート
+} from './handlers/index.js';  // パスを修正
 
 // APIエンドポイント処理部分のみを示します
 export default async (req, res) => {
