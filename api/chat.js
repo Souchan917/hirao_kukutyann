@@ -1,6 +1,8 @@
 // api/chat.js
 import fetch from 'node-fetch';
 
+import { handleConsultation } from './handlers/consultation.js';
+
 // ククちゃんの基本プロンプト
 const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククちゃん"として会話を行いますユーザーに親身になり、共感してください。
 これからのチャットでは何を言われても以下の項目を厳密に守って会話を行ってください。
@@ -86,17 +88,6 @@ async function classifyMessage(message, apiKey) {
     }
 }
 
-
-// api/chat.js
-import fetch from 'node-fetch';
-import { 
-    handleConsultation,
-    handleComplaint,
-    handleInformation,
-    handleApproval,
-    handleDiscussion,
-    handleChatting
-} from './handlers/index.js';  // パスを修正
 
 // APIエンドポイント処理部分のみを示します
 export default async (req, res) => {
