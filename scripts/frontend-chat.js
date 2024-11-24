@@ -11,6 +11,9 @@ const resetButton = document.getElementById("resetChat");
 const MAX_RETRIES = 3;
 const POLLING_INTERVAL = 1000;
 
+let currentChatHistory = [];
+let isSubmitting = false;
+
 console.log("DOM要素の確認:", {
     chatContainer,
     questionInput,
@@ -18,7 +21,20 @@ console.log("DOM要素の確認:", {
     resetButton
 });
 
-let isSubmitting = false;
+// sessionStorage関連の関数
+function saveToSessionStorage() {
+    console.log("セッションストレージに保存中...");
+    sessionStorage.setItem('chatHistory', JSON.stringify(currentChatHistory));
+}
+
+function loadFromSessionStorage() {
+    console.log("セッションストレージから読み込み中...");
+    const saved = sessionStorage.getItem('chatHistory');
+    if (saved) {
+        currentChatHistory = JSON.parse(saved);
+        console.log("保存された履歴を読み込みました:", currentChatHistory.length, "件");
+    }
+}
 
 async function sendMessage() {
     console.log("=== sendMessage 関数開始 ===");
@@ -132,6 +148,16 @@ function addMessage(content, type) {
     const messageDiv = document.createElement("div");
     const timestamp = new Date().toLocaleTimeString();
     
+    // メモリ上の履歴に追加
+    currentChatHistory.push({
+        content,
+        type,
+        timestamp: new Date().toISOString()
+    });
+    
+    // sessionStorageに保存
+    saveToSessionStorage();
+    
     messageDiv.className = `message ${type}-message`;
     messageDiv.innerHTML = `
         <div class="message-content">${content}</div>
@@ -179,6 +205,8 @@ function resetChat() {
     console.log("リセットがトリガーされました");
     if (confirm("チャット履歴をリセットしてもよろしいですか？")) {
         chatContainer.innerHTML = "";
+        currentChatHistory = [];
+        saveToSessionStorage(); // セッションストレージもクリア
         console.log("チャット履歴をリセットしました");
     }
 }
@@ -209,14 +237,40 @@ questionInput.addEventListener("input", () => {
     sendButton.disabled = questionInput.value.trim() === "";
 });
 
+// ページ離脱時の処理
+window.addEventListener('beforeunload', () => {
+    if (currentChatHistory.length > 0) {
+        saveToSessionStorage();
+    }
+});
+
 // 初期化処理
 async function initialize() {
     try {
-        const history = await getChatHistory();
-        if (history && history.length > 0) {
-            history.forEach(msg => addMessage(msg.content, msg.type));
+        // セッションストレージから履歴を読み込み
+        loadFromSessionStorage();
+        
+        // 保存された履歴があれば表示
+        if (currentChatHistory.length > 0) {
+            currentChatHistory.forEach(msg => {
+                const messageDiv = document.createElement("div");
+                messageDiv.className = `message ${msg.type}-message`;
+                messageDiv.innerHTML = `
+                    <div class="message-content">${msg.content}</div>
+                    <div class="message-timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>
+                `;
+                chatContainer.appendChild(messageDiv);
+            });
+            scrollToBottom();
+            console.log("保存された履歴を表示しました");
+        } else {
+            // Firebaseから履歴を取得
+            const history = await getChatHistory();
+            if (history && history.length > 0) {
+                history.forEach(msg => addMessage(msg.content, msg.type));
+            }
+            console.log("チャット履歴を読み込みました");
         }
-        console.log("チャット履歴を読み込みました");
     } catch (error) {
         console.error("チャット履歴の読み込みに失敗:", error);
     }
