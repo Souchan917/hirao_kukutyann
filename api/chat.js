@@ -1,5 +1,5 @@
-// api/chat.js
 import fetch from 'node-fetch';
+import { saveResponseToFirebase, getResponseFromFirebase } from '../libs/firebase.js';
 
 // くくちゃんの基本プロンプト
 const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククちゃん"として会話を行います。
@@ -38,6 +38,8 @@ const CHATTING_PROMPT = `${KUKU_PROFILE}
 
 // OpenAI APIを呼び出す関数
 async function callOpenAI(prompt, userMessage, apiKey) {
+    console.log('OpenAI API呼び出し開始:', { prompt: prompt.substring(0, 50) + '...', userMessage });
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -56,65 +58,154 @@ async function callOpenAI(prompt, userMessage, apiKey) {
     });
 
     if (!response.ok) {
+        const errorData = await response.json();
+        console.error('OpenAI APIエラー:', errorData);
         throw new Error(`OpenAI API error: ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log('OpenAI API応答成功');
     return data.choices[0].message.content;
 }
 
-// メインのハンドラー関数
-export default async function handler(req, res) {
-    console.log('=== チャットAPI開始 ===');
-    const { userMessage } = req.body;
-    const apiKey = process.env.OPENAI_API_KEY;
-
-    if (!apiKey) {
-        console.error('OPENAI_API_KEYが設定されていません');
-        return res.status(500).json({ error: 'サーバーの設定エラー: APIキーが設定されていません。' });
-    }
-
+// バックグラウンド処理関数
+async function processMessageAsync(userMessage, requestId, apiKey) {
+    console.log('バックグラウンド処理開始:', { requestId, userMessage });
+    
     try {
-        // 1. メッセージの分類
-        console.log('メッセージの分類を開始:', userMessage);
+        // 処理開始状態を保存
+        await saveResponseToFirebase(requestId, {
+            status: 'processing',
+            timestamp: new Date().toISOString()
+        });
+
+        // メッセージの分類
+        console.log('メッセージの分類開始');
         const messageType = await callOpenAI(CLASSIFICATION_PROMPT, userMessage, apiKey);
-        console.log('分類結果:', messageType);
+        console.log('メッセージ分類結果:', messageType);
 
-        // 2. 分類に基づいてプロンプトを選択
-        let selectedPrompt;
-        switch (messageType.trim().toLowerCase()) {
-            case '相談':
-                console.log('相談モードを選択');
-                selectedPrompt = CONSULTATION_PROMPT;
-                break;
-            case '雑談':
-                console.log('雑談モードを選択');
-                selectedPrompt = CHATTING_PROMPT;
-                break;
-            default:
-                console.log('デフォルト（雑談）モードを選択');
-                selectedPrompt = CHATTING_PROMPT;
-                break;
-        }
+        // 分類に基づいてプロンプトを選択
+        const selectedPrompt = messageType.trim().toLowerCase() === '相談' 
+            ? CONSULTATION_PROMPT 
+            : CHATTING_PROMPT;
+        console.log('選択されたプロンプトタイプ:', messageType.trim().toLowerCase() === '相談' ? '相談' : '雑談');
 
-        // 3. 選択したプロンプトで回答を生成
-        console.log('回答の生成を開始');
+        // 回答を生成
+        console.log('回答の生成開始');
         const reply = await callOpenAI(selectedPrompt, userMessage, apiKey);
         console.log('回答の生成完了');
 
-        // 4. 結果を返す
-        res.status(200).json({
+        // 結果を保存
+        await saveResponseToFirebase(requestId, {
+            status: 'completed',
             reply: reply,
-            type: messageType
+            type: messageType,
+            timestamp: new Date().toISOString()
         });
+        console.log('処理完了:', { requestId });
 
     } catch (error) {
-        console.error('エラーが発生:', error);
-        res.status(500).json({ 
-            error: 'AIからの応答の取得に失敗しました',
-            details: error.message 
+        console.error('バックグラウンド処理エラー:', error);
+        // エラー状態を保存
+        await saveResponseToFirebase(requestId, {
+            status: 'error',
+            error: error.message,
+            timestamp: new Date().toISOString()
         });
     }
-    
-    console.log('=== チャットAPI終了 ===');
+}
+
+// メインのAPIハンドラー
+export default async function handler(req, res) {
+    console.log('APIハンドラー呼び出し:', { method: req.method });
+
+    if (req.method === 'POST') {
+        const { userMessage } = req.body;
+        const apiKey = process.env.OPENAI_API_KEY;
+
+        if (!apiKey) {
+            console.error('OpenAI APIキーが設定されていません');
+            return res.status(500).json({ error: 'サーバーの設定エラー: APIキーが設定されていません。' });
+        }
+
+        if (!userMessage) {
+            console.error('メッセージが空です');
+            return res.status(400).json({ error: 'メッセージが必要です' });
+        }
+
+        // リクエストIDを生成
+        const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log('新規リクエスト作成:', { requestId, userMessage });
+
+        try {
+            // バックグラウンド処理を開始
+            processMessageAsync(userMessage, requestId, apiKey).catch(error => {
+                console.error('バックグラウンド処理中のエラー:', error);
+            });
+
+            // 即時レスポンス
+            return res.status(202).json({
+                status: 'processing',
+                requestId: requestId,
+                message: 'リクエストを受け付けました'
+            });
+
+        } catch (error) {
+            console.error('POSTリクエスト処理エラー:', error);
+            return res.status(500).json({ error: error.message });
+        }
+
+    } else if (req.method === 'GET') {
+        const { requestId } = req.query;
+        console.log('GETリクエスト:', { requestId });
+
+        if (!requestId) {
+            console.error('リクエストIDが指定されていません');
+            return res.status(400).json({ error: 'リクエストIDが必要です' });
+        }
+
+        try {
+            const response = await getResponseFromFirebase(requestId);
+            console.log('Firebase応答:', { requestId, status: response?.status });
+            
+            if (!response) {
+                return res.status(404).json({ 
+                    error: 'リクエストが見つかりません',
+                    requestId 
+                });
+            }
+
+            switch (response.status) {
+                case 'completed':
+                    return res.status(200).json(response);
+                case 'error':
+                    return res.status(500).json({
+                        error: 'AI応答の生成に失敗しました',
+                        details: response.error,
+                        requestId
+                    });
+                case 'processing':
+                default:
+                    return res.status(202).json({ 
+                        status: 'processing',
+                        message: '処理中です',
+                        requestId
+                    });
+            }
+
+        } catch (error) {
+            console.error('GETリクエスト処理エラー:', error);
+            return res.status(500).json({ 
+                error: '結果の取得に失敗しました',
+                details: error.message,
+                requestId 
+            });
+        }
+    }
+
+    console.error('不正なメソッド:', req.method);
+    return res.status(405).json({ 
+        error: 'Method not allowed',
+        allowedMethods: ['GET', 'POST']
+    });
 }
