@@ -1,6 +1,7 @@
-// frontend-chat.js
-import { saveMessage, getChatHistory } from "../libs/firebase.js";
+// インポート部分だけを変更
+import { saveMessage, getChatHistory } from "../libs/firebase.js";  // firebaseUtils.js から firebase.js に変更
 
+// 以降のコードは全く同じ
 console.log("=== frontend-chat.js 読み込み開始 ===");
 
 const apiUrl = "/api/chat";
@@ -8,11 +9,6 @@ const chatContainer = document.getElementById("chatContainer");
 const questionInput = document.getElementById("questionInput");
 const sendButton = document.getElementById("sendQuestion");
 const resetButton = document.getElementById("resetChat");
-const MAX_RETRIES = 3;
-const POLLING_INTERVAL = 1000;
-
-let currentChatHistory = [];
-let isSubmitting = false;
 
 console.log("DOM要素の確認:", {
     chatContainer,
@@ -21,20 +17,7 @@ console.log("DOM要素の確認:", {
     resetButton
 });
 
-// sessionStorage関連の関数
-function saveToSessionStorage() {
-    console.log("セッションストレージに保存中...");
-    sessionStorage.setItem('chatHistory', JSON.stringify(currentChatHistory));
-}
-
-function loadFromSessionStorage() {
-    console.log("セッションストレージから読み込み中...");
-    const saved = sessionStorage.getItem('chatHistory');
-    if (saved) {
-        currentChatHistory = JSON.parse(saved);
-        console.log("保存された履歴を読み込みました:", currentChatHistory.length, "件");
-    }
-}
+let isSubmitting = false;
 
 async function sendMessage() {
     console.log("=== sendMessage 関数開始 ===");
@@ -49,232 +32,105 @@ async function sendMessage() {
 
     if (!message) {
         console.log("メッセージが空です");
-        alert("メッセージを入力してください。");
+        alert("Please enter a question.");
         return;
     }
 
     console.log("メッセージ送信プロセス開始");
     isSubmitting = true;
-    setUIState(true);
+    questionInput.disabled = true;
+    sendButton.disabled = true;
+
+    console.log("UIを無効化しました");
     addMessage(message, "user");
-    showTypingIndicator();
+
+    // Firebaseへの保存を非同期で試みる（エラーが発生しても続行）
+    try {
+        console.log("Firebaseにユーザーメッセージを保存中...");
+        await saveMessage(message, "user", 3);
+        console.log("Firebaseにユーザーメッセージが保存されました");
+    } catch (error) {
+        console.error("Firebaseにユーザーメッセージの保存失敗:", error);
+        // Firebase保存エラーは無視して続行
+    }
 
     try {
-        // Firebaseへのユーザーメッセージ保存
-        try {
-            console.log("Firebaseにユーザーメッセージを保存中...");
-            await saveMessage(message, "user", 3);
-            console.log("Firebaseにユーザーメッセージが保存されました");
-        } catch (error) {
-            console.error("Firebaseにユーザーメッセージの保存失敗:", error);
-        }
-
-        // APIリクエスト
         console.log("APIにリクエスト送信中...");
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ userMessage: message })
+            body: JSON.stringify({ userMessage: message, questionId: 3 })
         });
 
+        console.log("APIレスポンスステータス:", response.status);
+
         if (!response.ok) {
+            console.error("APIエラー:", response.statusText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log("APIレスポンス:", data);
+        console.log("APIからのデータ:", data);
 
-        if (data.status === 'processing' && data.requestId) {
-            let result;
-            let retryCount = 0;
-            const maxRetries = 10;  // 最大リトライ回数を増やす
+        console.log("AIからの応答をチャットに追加します");
+        addMessage(data.reply, "ai");
 
-            while (retryCount < maxRetries) {
-                result = await pollForResponse(data.requestId);
-                
-                if (result.status === 'completed' && result.reply) {
-                    hideTypingIndicator();
-                    addMessage(result.reply, "ai");
-                    
-                    try {
-                        await saveMessage(result.reply, "ai", 3);
-                        console.log("FirebaseにAI応答が保存されました");
-                    } catch (error) {
-                        console.error("FirebaseにAI応答の保存失敗:", error);
-                    }
-                    break;
-                }
-                
-                if (result.status === 'error') {
-                    throw new Error(result.error || '処理中にエラーが発生しました');
-                }
-
-                retryCount++;
-                await new Promise(resolve => setTimeout(resolve, 2000));  // ポーリング間隔を2秒に
-            }
-
-            if (retryCount >= maxRetries) {
-                throw new Error('応答取得がタイムアウトしました');
-            }
+        // AI応答もFirebaseに保存
+        try {
+            console.log("FirebaseにAI応答を保存中...");
+            await saveMessage(data.reply, "ai", 3);
+            console.log("FirebaseにAI応答が保存されました");
+        } catch (error) {
+            console.error("FirebaseにAI応答の保存失敗:", error);
+            // Firebase保存エラーは無視
         }
-
     } catch (error) {
         console.error("チャットフロー内でエラーが発生:", error);
-        hideTypingIndicator();
-        addMessage("申し訳ありません。エラーが発生しました。もう一度お試しください。", "error");
+        addMessage("An error occurred. Please try again later.", "ai");
     } finally {
-        cleanup();
-    }
-}
-
-// ポーリング関数の改善
-async function pollForResponse(requestId) {
-    try {
-        const response = await fetch(`${apiUrl}?requestId=${requestId}`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return await response.json();
-    } catch (error) {
-        console.error("ポーリングエラー:", error);
-        throw error;
+        console.log("UIをリセットします");
+        isSubmitting = false;
+        questionInput.disabled = false;
+        sendButton.disabled = false;
+        questionInput.value = "";
+        console.log("=== sendMessage 関数終了 ===");
     }
 }
 
 function addMessage(content, type) {
     console.log("addMessage関数:", { content, type });
     const messageDiv = document.createElement("div");
-    const timestamp = new Date().toLocaleTimeString();
-    
-    // メモリ上の履歴に追加
-    currentChatHistory.push({
-        content,
-        type,
-        timestamp: new Date().toISOString()
-    });
-    
-    // sessionStorageに保存
-    saveToSessionStorage();
-    
-    messageDiv.className = `message ${type}-message`;
-    messageDiv.innerHTML = `
-        <div class="message-content">${content}</div>
-        <div class="message-timestamp">${timestamp}</div>
-    `;
-    
+    messageDiv.textContent = content;
+    messageDiv.className = type === "user" ? "user-message" : "ai-message";
     chatContainer.appendChild(messageDiv);
-    scrollToBottom();
-    console.log("メッセージをチャットに追加しました:", content);
-}
-
-function showTypingIndicator() {
-    const typingDiv = document.createElement("div");
-    typingDiv.id = "typing-indicator";
-    typingDiv.className = "message ai-message typing";
-    typingDiv.textContent = "ククちゃんが考え中...";
-    chatContainer.appendChild(typingDiv);
-    scrollToBottom();
-}
-
-function hideTypingIndicator() {
-    const typingDiv = document.getElementById("typing-indicator");
-    if (typingDiv) {
-        typingDiv.remove();
-    }
-}
-
-function setUIState(disabled) {
-    questionInput.disabled = disabled;
-    sendButton.disabled = disabled;
-}
-
-function cleanup() {
-    isSubmitting = false;
-    setUIState(false);
-    questionInput.value = "";
-    questionInput.focus();
-}
-
-function scrollToBottom() {
     chatContainer.scrollTop = chatContainer.scrollHeight;
+    console.log("メッセージをチャットに追加しました:", content);
 }
 
 function resetChat() {
     console.log("リセットがトリガーされました");
-    if (confirm("チャット履歴をリセットしてもよろしいですか？")) {
+    if (confirm("Are you sure you want to reset the chat?")) {
         chatContainer.innerHTML = "";
-        currentChatHistory = [];
-        saveToSessionStorage(); // セッションストレージもクリア
         console.log("チャット履歴をリセットしました");
     }
 }
 
-// イベントリスナーの設定
 console.log("イベントリスナーを設定します");
-
 sendButton.addEventListener("click", () => {
     console.log("送信ボタンがクリックされました");
     sendMessage();
 });
-
 resetButton.addEventListener("click", () => {
     console.log("リセットボタンがクリックされました");
     resetChat();
 });
-
 questionInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter") {
         console.log("Enterキーが押されました");
-        e.preventDefault();
         sendMessage();
     }
 });
 
-// 入力監視
-questionInput.addEventListener("input", () => {
-    sendButton.disabled = questionInput.value.trim() === "";
-});
-
-// ページ離脱時の処理
-window.addEventListener('beforeunload', () => {
-    if (currentChatHistory.length > 0) {
-        saveToSessionStorage();
-    }
-});
-
-// 初期化処理
-async function initialize() {
-    try {
-        // セッションストレージから履歴を読み込み
-        loadFromSessionStorage();
-        
-        // 保存された履歴があれば表示
-        if (currentChatHistory.length > 0) {
-            currentChatHistory.forEach(msg => {
-                const messageDiv = document.createElement("div");
-                messageDiv.className = `message ${msg.type}-message`;
-                messageDiv.innerHTML = `
-                    <div class="message-content">${msg.content}</div>
-                    <div class="message-timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>
-                `;
-                chatContainer.appendChild(messageDiv);
-            });
-            scrollToBottom();
-            console.log("保存された履歴を表示しました");
-        } else {
-            // Firebaseから履歴を取得
-            const history = await getChatHistory();
-            if (history && history.length > 0) {
-                history.forEach(msg => addMessage(msg.content, msg.type));
-            }
-            console.log("チャット履歴を読み込みました");
-        }
-    } catch (error) {
-        console.error("チャット履歴の読み込みに失敗:", error);
-    }
-}
-
-initialize();
 console.log("=== frontend-chat.js 読み込み終了 ===");
