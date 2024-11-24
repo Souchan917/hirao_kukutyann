@@ -9,9 +9,9 @@ const chatContainer = document.getElementById("chatContainer");
 const questionInput = document.getElementById("questionInput");
 const sendButton = document.getElementById("sendQuestion");
 const resetButton = document.getElementById("resetChat");
-const endChatButton = document.querySelector(".text-center.mt-4"); // チャットを終わるボタン
+const endChatButton = document.getElementById("endChat"); // IDベースで取得するように変更
 const surveyForm = document.getElementById("survey-form");
-const submitSurveyButton = surveyForm.querySelector(".text-center"); // アンケートを送信ボタン
+const submitSurveyButton = document.getElementById("submitSurvey"); // IDベースで取得するように変更
 
 // 評価ボタングループの取得
 const satisfactionButtons = surveyForm.querySelector('div[aria-label="満足度"]').querySelectorAll('strong');
@@ -19,6 +19,7 @@ const personalizedButtons = surveyForm.querySelector('div[aria-label="個別化�
 const comparisonButtons = surveyForm.querySelector('div[aria-label="比較"]').querySelectorAll('strong');
 const intentionButtons = surveyForm.querySelector('div[aria-label="意図の理解"]').querySelectorAll('strong');
 
+// DOM要素の存在確認とログ出力
 console.log("DOM要素の確認:", {
     chatContainer,
     questionInput,
@@ -26,7 +27,13 @@ console.log("DOM要素の確認:", {
     resetButton,
     endChatButton,
     surveyForm,
-    submitSurveyButton
+    submitSurveyButton,
+    評価ボタン: {
+        満足度: satisfactionButtons.length,
+        個別化: personalizedButtons.length,
+        比較: comparisonButtons.length,
+        意図: intentionButtons.length
+    }
 });
 
 // 状態管理
@@ -61,18 +68,13 @@ async function sendMessage() {
     questionInput.disabled = true;
     sendButton.disabled = true;
 
-    console.log("UIを無効化しました");
-    addMessage(message, "user");
-
     try {
         console.log("Firebaseにユーザーメッセージを保存中...");
         await saveMessage(message, "user", 3);
         console.log("Firebaseにユーザーメッセージが保存されました");
-    } catch (error) {
-        console.error("Firebaseにユーザーメッセージの保存失敗:", error);
-    }
+        
+        addMessage(message, "user");
 
-    try {
         console.log("APIにリクエスト送信中...");
         const response = await fetch(apiUrl, {
             method: "POST",
@@ -85,23 +87,17 @@ async function sendMessage() {
         console.log("APIレスポンスステータス:", response.status);
 
         if (!response.ok) {
-            console.error("APIエラー:", response.statusText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
         console.log("APIからのデータ:", data);
 
-        console.log("AIからの応答をチャットに追加します");
         addMessage(data.reply, "ai");
 
-        try {
-            console.log("FirebaseにAI応答を保存中...");
-            await saveMessage(data.reply, "ai", 3);
-            console.log("FirebaseにAI応答が保存されました");
-        } catch (error) {
-            console.error("FirebaseにAI応答の保存失敗:", error);
-        }
+        await saveMessage(data.reply, "ai", 3);
+        console.log("FirebaseにAI応答が保存されました");
+
     } catch (error) {
         console.error("チャットフロー内でエラーが発生:", error);
         addMessage("エラーが発生しました。後でもう一度お試しください。", "ai");
@@ -111,24 +107,24 @@ async function sendMessage() {
         questionInput.disabled = false;
         sendButton.disabled = false;
         questionInput.value = "";
-        console.log("=== sendMessage 関数終了 ===");
     }
+
+    console.log("=== sendMessage 関数終了 ===");
 }
 
 // メッセージ追加関数
 function addMessage(content, type) {
-    console.log("addMessage関数:", { content, type });
+    console.log(`addMessage関数実行: ${type}メッセージを追加`);
     const messageDiv = document.createElement("div");
-    messageDiv.textContent = content;
     messageDiv.className = type === "user" ? "user-message" : "ai-message";
+    messageDiv.textContent = content;
     chatContainer.appendChild(messageDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
-    console.log("メッセージをチャットに追加しました:", content);
 }
 
 // チャットリセット関数
 function resetChat() {
-    console.log("リセットがトリガーされました");
+    console.log("チャットリセット実行");
     if (confirm("チャット履歴をリセットしてもよろしいですか？")) {
         chatContainer.innerHTML = "";
         console.log("チャット履歴をリセットしました");
@@ -143,41 +139,56 @@ function setupRatingButtons(buttons, category) {
             buttons.forEach(btn => btn.classList.remove('selected'));
             button.classList.add('selected');
             surveyAnswers[category] = index + 1;
+            console.log("現在の評価状態:", surveyAnswers);
         });
     });
 }
 
 // チャット終了関数
 function endChat() {
-    console.log("チャットを終了します");
+    console.log("チャット終了処理を開始");
+    
+    if (!surveyForm) {
+        console.error("アンケートフォームが見つかりません");
+        return;
+    }
+
+    // 入力を無効化
     questionInput.disabled = true;
     sendButton.disabled = true;
-    
+
+    // アンケートフォームを表示
     surveyForm.style.display = 'block';
+    
+    // スムーズスクロール
     surveyForm.scrollIntoView({ behavior: 'smooth' });
+    
+    console.log("アンケートフォームを表示し、チャット終了処理を完了");
 }
 
 // アンケート送信関数
-async function submitSurvey() {
-    console.log("アンケートを送信します", surveyAnswers);
-    
+async function submitSurvey(event) {
+    event.preventDefault();
+    console.log("アンケート送信処理を開始", surveyAnswers);
+
     if (Object.values(surveyAnswers).some(value => value === 0)) {
         alert("すべての項目にお答えください。");
         return;
     }
-    
+
     try {
-        // Firebase保存処理を実装予定
+        console.log("Firebaseにアンケート回答を保存中...");
         await saveMessage(JSON.stringify(surveyAnswers), "survey", 3);
         
         alert("アンケートにご協力いただき、ありがとうございました。");
         
+        // UIをリセット
         surveyForm.style.display = 'none';
         chatContainer.innerHTML = '';
         questionInput.disabled = false;
         sendButton.disabled = false;
         
-        // アンケートの回答をリセット
+        // 回答をリセット
         surveyAnswers = {
             satisfaction: 0,
             personalization: 0,
@@ -189,6 +200,8 @@ async function submitSurvey() {
         document.querySelectorAll('.btn-group strong.selected').forEach(button => {
             button.classList.remove('selected');
         });
+        
+        console.log("アンケート送信処理が完了し、UIをリセットしました");
         
     } catch (error) {
         console.error("アンケート送信エラー:", error);
@@ -203,34 +216,41 @@ setupRatingButtons(comparisonButtons, 'comparison');
 setupRatingButtons(intentionButtons, 'intention');
 
 // イベントリスナーの設定
-console.log("イベントリスナーを設定します");
+console.log("イベントリスナーの設定を開始");
 
-sendButton.addEventListener("click", () => {
-    console.log("送信ボタンがクリックされました");
-    sendMessage();
-});
+if (sendButton) {
+    sendButton.addEventListener("click", sendMessage);
+    console.log("送信ボタンのリスナーを設定");
+}
 
-resetButton.addEventListener("click", () => {
-    console.log("リセットボタンがクリックされました");
-    resetChat();
-});
+if (resetButton) {
+    resetButton.addEventListener("click", resetChat);
+    console.log("リセットボタンのリスナーを設定");
+}
 
-questionInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-        console.log("Enterキーが押されました");
-        sendMessage();
-    }
-});
+if (questionInput) {
+    questionInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+            console.log("Enterキーが押されました");
+            sendMessage();
+        }
+    });
+    console.log("入力フィールドのリスナーを設定");
+}
 
-endChatButton.addEventListener("click", () => {
-    console.log("終了ボタンがクリックされました");
-    endChat();
-});
+if (endChatButton) {
+    endChatButton.addEventListener("click", endChat);
+    console.log("終了ボタンのリスナーを設定");
+} else {
+    console.error("終了ボタンが見つかりません");
+}
 
-submitSurveyButton.addEventListener("click", () => {
-    console.log("アンケート送信ボタンがクリックされました");
-    submitSurvey();
-});
+if (submitSurveyButton) {
+    submitSurveyButton.addEventListener("click", submitSurvey);
+    console.log("アンケート送信ボタンのリスナーを設定");
+} else {
+    console.error("アンケート送信ボタンが見つかりません");
+}
 
 // ESCキーでアンケートをキャンセル
 document.addEventListener("keydown", (e) => {
@@ -238,7 +258,8 @@ document.addEventListener("keydown", (e) => {
         surveyForm.style.display = 'none';
         questionInput.disabled = false;
         sendButton.disabled = false;
+        console.log("ESCキーでアンケートをキャンセルしました");
     }
 });
 
-console.log("=== frontend-chat.js 読み込み終了 ===");
+console.log("=== frontend-chat.js 読み込み完了 ===");
