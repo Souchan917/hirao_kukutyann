@@ -69,42 +69,55 @@ async function sendMessage() {
             console.error("Firebaseにユーザーメッセージの保存失敗:", error);
         }
 
-        // 初期リクエストの送信
+        // APIリクエスト
         console.log("APIにリクエスト送信中...");
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ userMessage: message, questionId: 3 })
+            body: JSON.stringify({ userMessage: message })
         });
-
-        console.log("APIレスポンスステータス:", response.status);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const initData = await response.json();
-        console.log("初期レスポンス:", initData);
+        const data = await response.json();
+        console.log("APIレスポンス:", data);
 
-        if (initData.status === 'processing' && initData.requestId) {
-            // ポーリングによる結果の取得
-            const result = await pollForResponse(initData.requestId);
-            hideTypingIndicator();
-            addMessage(result.reply, "ai");
+        if (data.status === 'processing' && data.requestId) {
+            let result;
+            let retryCount = 0;
+            const maxRetries = 10;  // 最大リトライ回数を増やす
 
-            // AI応答のFirebase保存
-            try {
-                await saveMessage(result.reply, "ai", 3);
-                console.log("FirebaseにAI応答が保存されました");
-            } catch (error) {
-                console.error("FirebaseにAI応答の保存失敗:", error);
+            while (retryCount < maxRetries) {
+                result = await pollForResponse(data.requestId);
+                
+                if (result.status === 'completed' && result.reply) {
+                    hideTypingIndicator();
+                    addMessage(result.reply, "ai");
+                    
+                    try {
+                        await saveMessage(result.reply, "ai", 3);
+                        console.log("FirebaseにAI応答が保存されました");
+                    } catch (error) {
+                        console.error("FirebaseにAI応答の保存失敗:", error);
+                    }
+                    break;
+                }
+                
+                if (result.status === 'error') {
+                    throw new Error(result.error || '処理中にエラーが発生しました');
+                }
+
+                retryCount++;
+                await new Promise(resolve => setTimeout(resolve, 2000));  // ポーリング間隔を2秒に
             }
-        } else {
-            // 従来の直接レスポンス処理
-            hideTypingIndicator();
-            addMessage(initData.reply, "ai");
+
+            if (retryCount >= maxRetries) {
+                throw new Error('応答取得がタイムアウトしました');
+            }
         }
 
     } catch (error) {
@@ -116,27 +129,14 @@ async function sendMessage() {
     }
 }
 
-async function pollForResponse(requestId, attempt = 0) {
-    if (attempt >= MAX_RETRIES) {
-        throw new Error('応答取得がタイムアウトしました');
-    }
-
+// ポーリング関数の改善
+async function pollForResponse(requestId) {
     try {
         const response = await fetch(`${apiUrl}?requestId=${requestId}`);
-        const data = await response.json();
-
-        if (data.status === 'completed') {
-            return data;
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-
-        if (data.status === 'error') {
-            throw new Error(data.error || '処理中にエラーが発生しました');
-        }
-
-        // 処理中の場合は待機して再試行
-        await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL));
-        return pollForResponse(requestId, attempt + 1);
-
+        return await response.json();
     } catch (error) {
         console.error("ポーリングエラー:", error);
         throw error;
