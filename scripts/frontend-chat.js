@@ -45,71 +45,102 @@ let surveyAnswers = {
     intention: 0
 };
 
-// メッセージ送信関数
-async function sendMessage() {
-    console.log("=== sendMessage 関数開始 ===");
-
-    if (isSubmitting) {
-        console.log("送信中のため処理をスキップします");
-        return;
-    }
-
-    const message = questionInput.value.trim();
-    console.log("入力されたメッセージ:", message);
-
-    if (!message) {
-        console.log("メッセージが空です");
-        alert("メッセージを入力してください。");
-        return;
-    }
-
-    console.log("メッセージ送信プロセス開始");
-    isSubmitting = true;
-    questionInput.disabled = true;
-    sendButton.disabled = true;
-
-    try {
-        console.log("Firebaseにユーザーメッセージを保存中...");
-        await saveMessage(message, "user", 3);
-        console.log("Firebaseにユーザーメッセージが保存されました");
+// メッセージ追加関数を修正
+function addMessage(content, type) {
+    console.log(`addMessage関数実行: ${type}メッセージを追加`);
+    const messageDiv = document.createElement("div");
+    messageDiv.className = type === "user" ? "user-message" : "ai-message";
+    
+    // メッセージコンテナを作成
+    const messageContainer = document.createElement("div");
+    messageContainer.className = "message-container";
+    messageContainer.style.marginBottom = "20px";
+    
+    // メッセージ内容を追加
+    const messageContent = document.createElement("div");
+    messageContent.className = "message-content";
+    messageContent.textContent = content;
+    messageContainer.appendChild(messageContent);
+    
+    // AIメッセージの場合、評価ボタンを追加
+    if (type === "ai") {
+        const ratingContainer = document.createElement("div");
+        ratingContainer.className = "rating-container";
+        ratingContainer.style.marginTop = "5px";
+        ratingContainer.style.display = "flex";
+        ratingContainer.style.gap = "10px";
+        ratingContainer.style.justifyContent = "flex-end";
         
-        addMessage(message, "user");
-
-        console.log("APIにリクエスト送信中...");
-        const response = await fetch(apiUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ userMessage: message, questionId: 3 })
-        });
-
-        console.log("APIレスポンスステータス:", response.status);
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log("APIからのデータ:", data);
-
-        addMessage(data.reply, "ai");
-
-        await saveMessage(data.reply, "ai", 3);
-        console.log("FirebaseにAI応答が保存されました");
-
-    } catch (error) {
-        console.error("チャットフロー内でエラーが発生:", error);
-        addMessage("エラーが発生しました。後でもう一度お試しください。", "ai");
-    } finally {
-        console.log("UIをリセットします");
-        isSubmitting = false;
-        questionInput.disabled = false;
-        sendButton.disabled = false;
-        questionInput.value = "";
+        // GOODボタン
+        const goodButton = document.createElement("button");
+        goodButton.innerHTML = "👍";
+        goodButton.className = "rating-button good";
+        goodButton.style.border = "none";
+        goodButton.style.background = "none";
+        goodButton.style.cursor = "pointer";
+        goodButton.style.fontSize = "1.2em";
+        goodButton.title = "Good";
+        
+        // BADボタン
+        const badButton = document.createElement("button");
+        badButton.innerHTML = "👎";
+        badButton.className = "rating-button bad";
+        badButton.style.border = "none";
+        badButton.style.background = "none";
+        badButton.style.cursor = "pointer";
+        badButton.style.fontSize = "1.2em";
+        badButton.title = "Bad";
+        
+        // 評価イベントリスナーを追加
+        const messageId = `msg_${Date.now()}`;
+        messageContainer.dataset.messageId = messageId;
+        
+        goodButton.addEventListener("click", () => handleRating(messageId, content, "good"));
+        badButton.addEventListener("click", () => handleRating(messageId, content, "bad"));
+        
+        ratingContainer.appendChild(goodButton);
+        ratingContainer.appendChild(badButton);
+        messageContainer.appendChild(ratingContainer);
     }
+    
+    // メッセージをチャットコンテナに追加
+    chatContainer.appendChild(messageContainer);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
 
-    console.log("=== sendMessage 関数終了 ===");
+// 評価処理関数を追加
+async function handleRating(messageId, content, rating) {
+    console.log(`評価処理開始: ${messageId}, ${rating}`);
+    
+    try {
+        // 評価ボタンを無効化（二重評価防止）
+        const messageContainer = document.querySelector(`[data-message-id="${messageId}"]`);
+        const ratingButtons = messageContainer.querySelectorAll(".rating-button");
+        ratingButtons.forEach(button => {
+            button.disabled = true;
+            button.style.opacity = "0.5";
+            button.style.cursor = "default";
+        });
+        
+        // 選択された評価を強調表示
+        const selectedButton = messageContainer.querySelector(`.rating-button.${rating}`);
+        selectedButton.style.opacity = "1";
+        selectedButton.style.transform = "scale(1.2)";
+        
+        // Firebaseに評価を保存
+        await saveMessage(JSON.stringify({
+            messageId,
+            content,
+            rating,
+            timestamp: new Date().toISOString()
+        }), "rating", 3);
+        
+        console.log(`評価保存完了: ${rating}`);
+        
+    } catch (error) {
+        console.error("評価保存エラー:", error);
+        alert("評価の保存に失敗しました。");
+    }
 }
 
 // メッセージ追加関数
