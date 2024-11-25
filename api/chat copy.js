@@ -27,11 +27,7 @@ const CLASSIFICATION_PROMPT = `以下のユーザーの質問を「相談」「�
 
 // 相談処理用の関数
 async function handleConsultation(userMessage, apiKey) {
-    console.log('\n=== 相談処理開始 ===');
-    console.log('入力メッセージ:', userMessage);
-
     // 1. 意図分析
-    console.log('\n[1] 意図分析開始');
     const intentPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に含まれている意図を詳細に分析してください。
     ユーザーが質問を通じてどのようなサポートやアドバイスを期待しているのかを具体的に説明し、その背景や目的についても考察してください。
     また、質問の背後にある感情や動機についても考え、それがどのようにユーザーの期待や要求に影響を与えているかを分析してください。
@@ -41,8 +37,6 @@ async function handleConsultation(userMessage, apiKey) {
     ユーザーの質問: '${userMessage}'
     
     意図の分析: ~~~`;
-    
-    console.log('意図分析プロンプト:', intentPrompt);
 
     const intentResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -64,10 +58,8 @@ async function handleConsultation(userMessage, apiKey) {
 
     const intentData = await intentResponse.json();
     const intentContent = intentData.choices[0].message.content.trim();
-    console.log('意図分析結果:', intentContent);
 
     // 2. 追加質問の提案
-    console.log('\n[2] 追加質問生成開始');
     const followUpPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に対して以下を分析してください。
     ユーザーの質問に対して不足している環境や行動に関する情報を特定し、以下の点を踏まえつつ重要と判断される追加質問を2~3個提案してください。
     具体的に、ユーザーが提供していないが必要となる詳細な情報を特定し、それに基づいて質問を作成してください。
@@ -76,8 +68,6 @@ async function handleConsultation(userMessage, apiKey) {
     意図の分析: '${intentContent}'
 
     追加質問の提案: ~~~`;
-
-    console.log('追加質問プロンプト:', followUpPrompt);
 
     const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -99,10 +89,8 @@ async function handleConsultation(userMessage, apiKey) {
 
     const followUpData = await followUpResponse.json();
     const followUpContent = followUpData.choices[0].message.content.trim();
-    console.log('追加質問生成結果:', followUpContent);
 
     // 3. 最終的な回答生成
-    console.log('\n[3] 最終回答生成開始');
     const finalPrompt = `${KUKU_PROFILE}
 
     以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
@@ -113,8 +101,6 @@ async function handleConsultation(userMessage, apiKey) {
     追加の質問提案: ${followUpContent}
 
     ユーザーへの返答: ~~~`;
-
-    console.log('最終回答プロンプト:', finalPrompt);
 
     const finalResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -135,20 +121,12 @@ async function handleConsultation(userMessage, apiKey) {
     }
 
     const finalData = await finalResponse.json();
-    const finalContent = finalData.choices[0].message.content.trim();
-    console.log('\n最終回答:', finalContent);
-    console.log('=== 相談処理完了 ===\n');
-
-    return finalContent;
+    return finalData.choices[0].message.content.trim();
 }
 
 // 雑談処理用の関数
 async function handleChatting(userMessage, apiKey) {
-    console.log('\n=== 雑談処理開始 ===');
-    console.log('入力メッセージ:', userMessage);
-
     // 1. 追加質問の提案
-    console.log('\n[1] 追加質問生成開始');
     const followUpPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に含まれている意図を詳細に分析してください。
     ユーザーの質問に対して不足している環境や行動に関する情報を特定し、以下の点を踏まえつつ重要と判断される追加質問を2~3個提案してください。
     質問の背景理解：質問の主な内容と関連する問題点を把握します。
@@ -157,8 +135,6 @@ async function handleChatting(userMessage, apiKey) {
     ユーザーの質問: '${userMessage}'
 
     追加質問の提案: ~~~`;
-
-    console.log('追加質問プロンプト:', followUpPrompt);
 
     const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -180,10 +156,8 @@ async function handleChatting(userMessage, apiKey) {
 
     const followUpData = await followUpResponse.json();
     const followUpContent = followUpData.choices[0].message.content.trim();
-    console.log('追加質問生成結果:', followUpContent);
 
     // 2. 最終的な回答生成
-    console.log('\n[2] 最終回答生成開始');
     const responsePrompt = `${KUKU_PROFILE}
 
     以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
@@ -193,8 +167,6 @@ async function handleChatting(userMessage, apiKey) {
     追加の質問提案: ${followUpContent}
 
     ユーザーへの返答: ~~~`;
-
-    console.log('最終回答プロンプト:', responsePrompt);
 
     const finalResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -215,18 +187,12 @@ async function handleChatting(userMessage, apiKey) {
     }
 
     const finalData = await finalResponse.json();
-    const finalContent = finalData.choices[0].message.content.trim();
-    console.log('\n最終回答:', finalContent);
-    console.log('=== 雑談処理完了 ===\n');
-
-    return finalContent;
+    return finalData.choices[0].message.content.trim();
 }
 
 // メインのハンドラー関数
 export default async function handler(req, res) {
-    console.log('\n====== チャット処理開始 ======');
-    console.log('受信メッセージ:', req.body.userMessage);
-    
+    console.log('API endpoint called');
     const { userMessage } = req.body;
     const apiKey = process.env.OPENAI_API_KEY;
 
@@ -237,9 +203,7 @@ export default async function handler(req, res) {
 
     try {
         // 1. メッセージの分類
-        console.log('\n[1] メッセージ分類開始');
-        console.log('分類プロンプト:', CLASSIFICATION_PROMPT);
-        
+        console.log('メッセージの分類を開始:', userMessage);
         const classificationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -268,27 +232,21 @@ export default async function handler(req, res) {
         // 2. 分類に基づいて処理を分岐
         let reply;
         if (messageType === '相談') {
-            console.log('\n[2] 相談モードで処理開始');
+            console.log('相談モードで処理');
             reply = await handleConsultation(userMessage, apiKey);
         } else {
-            console.log('\n[2] 雑談モードで処理開始');
+            console.log('雑談モードで処理');
             reply = await handleChatting(userMessage, apiKey);
         }
 
         // 3. 結果を返す
-        console.log('\n[3] 最終結果:', { type: messageType, reply: reply });
-        console.log('====== チャット処理完了 ======\n');
-        
         res.status(200).json({
             reply: reply,
             type: messageType
         });
 
     } catch (error) {
-        console.error('\n!!!! エラー発生 !!!!');
-        console.error('エラー詳細:', error);
-        console.error('====== チャット処理異常終了 ======\n');
-        
+        console.error('エラーが発生:', error);
         res.status(500).json({ 
             error: 'AIからの応答の取得に失敗しました',
             details: error.message 
