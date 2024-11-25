@@ -117,33 +117,77 @@ function addMessage(content, type) {
     console.log(`addMessage関数実行: ${type}メッセージを追加`);
     const messageDiv = document.createElement("div");
     messageDiv.className = type === "user" ? "user-message" : "ai-message";
-    
-    // メッセージ本文を追加
     messageDiv.textContent = content;
-    
-    // AIの返答の場合のみ評価ボタンを追加
+    chatContainer.appendChild(messageDiv);
+
+    // AIの返答の場合のみ評価UIを表示
     if (type === "ai") {
-        const ratingDiv = document.createElement("div");
-        ratingDiv.className = "message-rating";
-        ratingDiv.style.marginTop = "5px";
-        ratingDiv.style.textAlign = "right";
-        
-        // 👍ボタン
+        // 評価コンテナを作成
+        const ratingContainer = document.createElement("div");
+        ratingContainer.className = "rating-container";
+        ratingContainer.style.cssText = `
+            text-align: center;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        `;
+
+        // 「この回答は役に立ちましたか？」のテキスト
+        const ratingText = document.createElement("div");
+        ratingText.textContent = "この回答は役に立ちましたか？";
+        ratingText.style.cssText = `
+            margin-bottom: 10px;
+            color: #666;
+            font-size: 0.9rem;
+        `;
+        ratingContainer.appendChild(ratingText);
+
+        // ボタンコンテナ
+        const buttonsContainer = document.createElement("div");
+        buttonsContainer.style.cssText = `
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        `;
+
+        // Goodボタン
         const goodBtn = document.createElement("button");
-        goodBtn.innerHTML = "👍";
-        goodBtn.style.background = "none";
-        goodBtn.style.border = "none";
-        goodBtn.style.cursor = "pointer";
-        goodBtn.style.marginRight = "10px";
-        
-        // 👎ボタン
+        goodBtn.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+            </svg>
+            <span style="margin-left: 5px;">Good</span>
+        `;
+        goodBtn.style.cssText = `
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            color: #333;
+            transition: all 0.2s;
+        `;
+
+        // Badボタン
         const badBtn = document.createElement("button");
-        badBtn.innerHTML = "👎";
-        badBtn.style.background = "none";
-        badBtn.style.border = "none";
-        badBtn.style.cursor = "pointer";
-        
-        // 評価イベントの追加
+        badBtn.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" />
+            </svg>
+            <span style="margin-left: 5px;">Bad</span>
+        `;
+        badBtn.style.cssText = goodBtn.style.cssText;
+
+        // ホバー効果
+        goodBtn.onmouseover = () => goodBtn.style.backgroundColor = '#f8f9fa';
+        goodBtn.onmouseout = () => goodBtn.style.backgroundColor = 'white';
+        badBtn.onmouseover = () => badBtn.style.backgroundColor = '#f8f9fa';
+        badBtn.onmouseout = () => badBtn.style.backgroundColor = 'white';
+
+        // クリックイベントの追加
         goodBtn.onclick = async () => {
             try {
                 await saveMessage(JSON.stringify({
@@ -152,16 +196,22 @@ function addMessage(content, type) {
                     timestamp: new Date().toISOString()
                 }), "rating", 3);
                 
-                // ボタンを無効化
+                // ビジュアルフィードバック
+                goodBtn.style.backgroundColor = '#e6f4ea';
+                goodBtn.style.borderColor = '#34a853';
+                goodBtn.style.color = '#34a853';
+                badBtn.style.opacity = '0.5';
                 goodBtn.disabled = true;
                 badBtn.disabled = true;
-                goodBtn.style.opacity = "1";
-                badBtn.style.opacity = "0.3";
+                
+                // 確認メッセージ
+                ratingText.textContent = "評価ありがとうございます";
+                ratingText.style.color = '#34a853';
             } catch (error) {
                 console.error("評価保存エラー:", error);
             }
         };
-        
+
         badBtn.onclick = async () => {
             try {
                 await saveMessage(JSON.stringify({
@@ -170,22 +220,28 @@ function addMessage(content, type) {
                     timestamp: new Date().toISOString()
                 }), "rating", 3);
                 
-                // ボタンを無効化
+                // ビジュアルフィードバック
+                badBtn.style.backgroundColor = '#fce8e6';
+                badBtn.style.borderColor = '#ea4335';
+                badBtn.style.color = '#ea4335';
+                goodBtn.style.opacity = '0.5';
                 goodBtn.disabled = true;
                 badBtn.disabled = true;
-                badBtn.style.opacity = "1";
-                goodBtn.style.opacity = "0.3";
+                
+                // 確認メッセージ
+                ratingText.textContent = "評価ありがとうございます";
+                ratingText.style.color = '#ea4335';
             } catch (error) {
                 console.error("評価保存エラー:", error);
             }
         };
-        
-        ratingDiv.appendChild(goodBtn);
-        ratingDiv.appendChild(badBtn);
-        messageDiv.appendChild(ratingDiv);
+
+        buttonsContainer.appendChild(goodBtn);
+        buttonsContainer.appendChild(badBtn);
+        ratingContainer.appendChild(buttonsContainer);
+        chatContainer.appendChild(ratingContainer);
     }
-    
-    chatContainer.appendChild(messageDiv);
+
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
