@@ -5,8 +5,28 @@
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
 
-// くくちゃんの基本プロンプト
-const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククちゃん"として会話を行います。
+/**
+ * 過去の会話履歴をプロンプト用に整形する関数
+ * @param {Array} history - 会話履歴の配列
+ * @param {number} maxTurns - 含める最大ターン数
+ * @returns {string} フォーマットされた会話履歴
+ */
+
+function formatConversationHistory(history, maxTurns = 5) {
+   if (!history || history.length === 0) return '';
+   
+   // 最新のmaxTurns分の会話を取得
+   const recentHistory = history.slice(-maxTurns * 2); // userとaiで2倍
+   
+   return recentHistory.map(msg => {
+       const role = msg.type === 'user' ? 'ユーザー' : 'ククちゃん';
+       return `${role}: ${msg.content}`;
+   }).join('\n');
+}
+
+// くくちゃんの基本プロンプト - 会話履歴を含める形に修正
+function createBasePrompt(conversationHistory = '') {
+   return `あなたは子育ての相談にのる先輩、"ククちゃん"として会話を行います。
 ユーザーに親身になり、共感してください。
 
 ### ククちゃんのルール ###
@@ -15,11 +35,16 @@ const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククち
 - ククちゃんからの回答は、200文字以内の日本語の文章を作成してください。
 - 文章に合わせて絵文字や「！」を付けてください。
 - 相手に共感するコメントをしたり、相手の気持ちを代弁してください。
+- 過去の会話の文脈を考慮して返答してください。
 
 ### ククちゃんのプロフィール ###
 - 2児の子どもを育てるママです。
 - 女性(母親)で43歳くらいです。
-- 長男(ポポちゃん・6歳)と長女(ピピちゃん・2歳)がいます。`;
+- 長男(ポポちゃん・6歳)と長女(ピピちゃん・2歳)がいます。
+
+### これまでの会話の流れ ###
+${conversationHistory}`;
+}
 
 // 分類用のプロンプト
 const CLASSIFICATION_PROMPT = `以下のユーザーの質問を「相談」「雑談」のいずれかに分類してください。
@@ -29,22 +54,24 @@ const CLASSIFICATION_PROMPT = `以下のユーザーの質問を「相談」「�
 
 回答は「相談」「雑談」のどちらかの1単語のみを返してください。`;
 
-// 相談処理用の関数
-async function handleConsultation(userMessage, apiKey) {
+
+
+// 相談処理用の関数を修正
+async function handleConsultation(userMessage, apiKey, conversationHistory) {
     console.log('\n=== 相談処理開始 ===');
     console.log('入力メッセージ:', userMessage);
-
-    // 1. 意図分析
-    console.log('\n[1] 意図分析開始');
-    const intentPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に含まれている意図を詳細に分析してください。
-    ユーザーが質問を通じてどのようなサポートやアドバイスを期待しているのかを具体的に説明し、その背景や目的についても考察してください。
-    また、質問の背後にある感情や動機についても考え、それがどのようにユーザーの期待や要求に影響を与えているかを分析してください。
-    最終的に、ユーザーがどのような返答や行動を求めているかを推測してください。
-    この分析を通じて、ユーザーの質問の真の意図と、それに対する最も適切な応答を明確にすることを目指します。
-
-    ユーザーの質問: '${userMessage}'
     
-    意図の分析: ~~~`;
+    // 1. 意図分析
+    const intentPrompt = `あなたはカウンセリングの専門家です。以下のユーザーとの会話履歴と最新の質問の意図を詳細に分析してください。
+会話の流れを踏まえた上で、ユーザーが今回の質問で求めているサポートやアドバイスを具体的に説明し、その背景や目的について考察してください。
+
+### これまでの会話の流れ ###
+${conversationHistory}
+
+### 最新の質問 ###
+${userMessage}
+
+意図の分析: ~~~`;
 
     const intentResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -68,15 +95,19 @@ async function handleConsultation(userMessage, apiKey) {
     const intentContent = intentData.choices[0].message.content.trim();
 
     // 2. 追加質問の提案
-    console.log('\n[2] 追加質問生成開始');
-    const followUpPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に対して以下を分析してください。
-    ユーザーの質問に対して不足している環境や行動に関する情報を特定し、以下の点を踏まえつつ重要と判断される追加質問を2~3個提案してください。
-    具体的に、ユーザーが提供していないが必要となる詳細な情報を特定し、それに基づいて質問を作成してください。
+    const followUpPrompt = `あなたはカウンセリングの専門家です。
+これまでの会話の流れを踏まえた上で、現在の質問に関して不足している情報を特定し、重要な追加質問を2~3個提案してください。
 
-    ユーザーの質問: '${userMessage}'
-    意図の分析: '${intentContent}'
+### これまでの会話の流れ ###
+${conversationHistory}
 
-    追加質問の提案: ~~~`;
+### 最新の質問 ###
+${userMessage}
+
+### 意図の分析 ###
+${intentContent}
+
+追加質問の提案: ~~~`;
 
     const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -100,17 +131,16 @@ async function handleConsultation(userMessage, apiKey) {
     const followUpContent = followUpData.choices[0].message.content.trim();
 
     // 3. 最終的な回答生成
-    console.log('\n[3] 最終回答生成開始');
-    const finalPrompt = `${KUKU_PROFILE}
+    const finalPrompt = `${createBasePrompt(conversationHistory)}
 
-    以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
-    また、ユーザーが提供した情報に基づいて具体的なアドバイスを行い、必要な場合は追加の質問をしてください。
+### 最新の質問 ###
+${userMessage}
 
-    ユーザーの質問: '${userMessage}'
-    意図の分析: '${intentContent}'
-    追加の質問提案: ${followUpContent}
+### 分析情報 ###
+意図の分析: ${intentContent}
+追加質問案: ${followUpContent}
 
-    ユーザーへの返答: ~~~`;
+ユーザーへの返答: ~~~`;
 
     const finalResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -136,7 +166,6 @@ async function handleConsultation(userMessage, apiKey) {
 
     return finalContent;
 }
-
 // 雑談処理用の関数
 async function handleChatting(userMessage, apiKey) {
     console.log('\n=== 雑談処理開始 ===');
@@ -228,12 +257,15 @@ export default async function handler(req, res) {
     let sessionId = req.cookies.sessionId;
     if (!sessionId) {
         sessionId = uuidv4();
-        res.setHeader('Set-Cookie', `sessionId=${sessionId}; HttpOnly; Path=/; Max-Age=86400`); // 24時間有効
+        res.setHeader('Set-Cookie', `sessionId=${sessionId}; HttpOnly; Path=/; Max-Age=86400`);
     }
 
     try {
+        // 会話履歴の取得
+        const chatHistory = await getChatHistory(sessionId);
+        const formattedHistory = formatConversationHistory(chatHistory);
+
         // 1. メッセージの分類
-        console.log('\n[1] メッセージ分類開始');
         const classificationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -258,12 +290,13 @@ export default async function handler(req, res) {
         const classificationData = await classificationResponse.json();
         const messageType = classificationData.choices[0].message.content.trim();
 
-        // 2. 分類に基づいて処理を分岐
+        // 2. 分類に基づいて処理を分岐（相談のみ実装）
         let reply;
         if (messageType === '相談') {
-            reply = await handleConsultation(userMessage, apiKey);
+            reply = await handleConsultation(userMessage, apiKey, formattedHistory);
         } else {
-            reply = await handleChatting(userMessage, apiKey);
+            // 雑談処理は後で実装
+            reply = await handleConsultation(userMessage, apiKey, formattedHistory);
         }
 
         // 3. 結果を返す
