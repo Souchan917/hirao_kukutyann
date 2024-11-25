@@ -248,11 +248,11 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'サーバーの設定エラー: APIキーが設定されていません。' });
     }
 
-    const sessionId = req.headers['x-session-id'] || req.body.sessionId;
-    
+    // セッションIDの管理
+    let sessionId = req.cookies.sessionId;
     if (!sessionId) {
-        return res.status(400).json({ error: 'セッションIDが必要です' });
-    }
+        sessionId = uuidv4(); // 新しいセッションIDを生成
+        res.setHeader('Set-Cookie', `sessionId=${sessionId}; HttpOnly; Path=/`);
     }
 
     try {

@@ -3,55 +3,6 @@ import { saveMessage, getChatHistory } from "../libs/firebase.js";
 
 console.log("=== frontend-chat.js 読み込み開始 ===");
 
-/**
- * セッションIDを管理するクラス
- */
-class SessionManager {
-    static SESSION_KEY = 'chatSessionId';
-    static SESSION_DURATION = 24 * 60 * 60 * 1000; // 24時間
-
-    /**
-     * セッションIDを取得または生成
-     * @returns {string} セッションID
-     */
-    static getSessionId() {
-        let sessionId = localStorage.getItem(this.SESSION_KEY);
-        
-        if (!sessionId) {
-            // 新しいセッションIDを生成
-            sessionId = 'session-' + new Date().getTime() + '-' + Math.random().toString(36).substr(2, 9);
-            
-            // セッション情報を保存
-            this.saveSession(sessionId);
-            console.log('新しいセッションIDを生成:', sessionId);
-        } else {
-            // セッションの有効期限をチェック
-            const sessionData = JSON.parse(localStorage.getItem(this.SESSION_KEY + '_data') || '{}');
-            if (sessionData && new Date().getTime() - sessionData.timestamp > this.SESSION_DURATION) {
-                // セッションが期限切れの場合、新しいセッションを作成
-                sessionId = 'session-' + new Date().getTime() + '-' + Math.random().toString(36).substr(2, 9);
-                this.saveSession(sessionId);
-                console.log('セッションが期限切れのため新規作成:', sessionId);
-            } else {
-                console.log('既存のセッションIDを使用:', sessionId);
-            }
-        }
-
-        return sessionId;
-    }
-
-    /**
-     * セッション情報を保存
-     * @param {string} sessionId - セッションID
-     */
-    static saveSession(sessionId) {
-        localStorage.setItem(this.SESSION_KEY, sessionId);
-        localStorage.setItem(this.SESSION_KEY + '_data', JSON.stringify({
-            timestamp: new Date().getTime()
-        }));
-    }
-}
-
 // DOM要素の取得
 const apiUrl = "/api/chat";
 const chatContainer = document.getElementById("chatContainer");
@@ -101,8 +52,8 @@ async function sendMessage() {
     sendButton.disabled = true;
 
     try {
-        // SessionManagerからセッションIDを取得
-        const sessionId = SessionManager.getSessionId();
+        // セッションIDを取得
+        const sessionId = getCookieValue('sessionId');
         console.log("現在のセッションID:", sessionId);
 
         // ユーザーメッセージを保存
@@ -117,13 +68,9 @@ async function sendMessage() {
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: {
-                "Content-Type": "application/json",
-                "X-Session-ID": sessionId
+                "Content-Type": "application/json"
             },
-            body: JSON.stringify({ 
-                userMessage: message,
-                sessionId: sessionId
-            })
+            body: JSON.stringify({ userMessage: message })
         });
 
         if (!response.ok) {
@@ -192,10 +139,90 @@ function addMessage(content, type) {
         `;
 
         // Goodボタン
-        const goodBtn = createRatingButton('good');
-        const badBtn = createRatingButton('bad');
+        const goodBtn = document.createElement("button");
+        goodBtn.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+            </svg>
+            <span style="margin-left: 5px;">Good</span>
+        `;
+        goodBtn.style.cssText = `
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            color: #333;
+            transition: all 0.2s;
+        `;
 
-        // ボタンの追加
+        // Badボタン
+        const badBtn = document.createElement("button");
+        badBtn.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" />
+            </svg>
+            <span style="margin-left: 5px;">Bad</span>
+        `;
+        badBtn.style.cssText = goodBtn.style.cssText;
+
+        // ホバー効果
+        goodBtn.onmouseover = () => goodBtn.style.backgroundColor = '#f8f9fa';
+        goodBtn.onmouseout = () => goodBtn.style.backgroundColor = 'white';
+        badBtn.onmouseover = () => badBtn.style.backgroundColor = '#f8f9fa';
+        badBtn.onmouseout = () => badBtn.style.backgroundColor = 'white';
+
+        // クリックイベントの追加
+        goodBtn.onclick = async () => {
+            try {
+                const sessionId = getCookieValue('sessionId');
+                await saveMessage(JSON.stringify({
+                    rating: 'good',
+                    message: content,
+                    timestamp: new Date().toISOString()
+                }), "rating", sessionId);
+                
+                // ビジュアルフィードバック
+                goodBtn.style.backgroundColor = '#e6f4ea';
+                goodBtn.style.borderColor = '#34a853';
+                goodBtn.style.color = '#34a853';
+                badBtn.style.opacity = '0.5';
+                goodBtn.disabled = true;
+                badBtn.disabled = true;
+                
+                ratingText.textContent = "評価ありがとうございます";
+                ratingText.style.color = '#34a853';
+            } catch (error) {
+                console.error("評価保存エラー:", error);
+            }
+        };
+
+        badBtn.onclick = async () => {
+            try {
+                const sessionId = getCookieValue('sessionId');
+                await saveMessage(JSON.stringify({
+                    rating: 'bad',
+                    message: content,
+                    timestamp: new Date().toISOString()
+                }), "rating", sessionId);
+                
+                // ビジュアルフィードバック
+                badBtn.style.backgroundColor = '#fce8e6';
+                badBtn.style.borderColor = '#ea4335';
+                badBtn.style.color = '#ea4335';
+                goodBtn.style.opacity = '0.5';
+                goodBtn.disabled = true;
+                badBtn.disabled = true;
+                
+                ratingText.textContent = "評価ありがとうございます";
+                ratingText.style.color = '#ea4335';
+            } catch (error) {
+                console.error("評価保存エラー:", error);
+            }
+        };
+
         buttonsContainer.appendChild(goodBtn);
         buttonsContainer.appendChild(badBtn);
         ratingContainer.appendChild(buttonsContainer);
@@ -203,73 +230,6 @@ function addMessage(content, type) {
     }
 
     chatContainer.scrollTop = chatContainer.scrollHeight;
-}
-
-// 評価ボタンを作成する補助関数
-function createRatingButton(type) {
-    const button = document.createElement("button");
-    const isGood = type === 'good';
-    
-    button.innerHTML = isGood ? 
-        `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
-        </svg>
-        <span style="margin-left: 5px;">Good</span>` :
-        `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" />
-        </svg>
-        <span style="margin-left: 5px;">Bad</span>`;
-
-    button.style.cssText = `
-        display: flex;
-        align-items: center;
-        padding: 8px 16px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        background: white;
-        cursor: pointer;
-        color: #333;
-        transition: all 0.2s;
-    `;
-
-    // ホバー効果
-    button.onmouseover = () => button.style.backgroundColor = '#f8f9fa';
-    button.onmouseout = () => button.style.backgroundColor = 'white';
-
-    // クリックイベントの設定
-    button.onclick = async () => {
-        try {
-            const sessionId = SessionManager.getSessionId();
-            await saveMessage(JSON.stringify({
-                rating: type,
-                timestamp: new Date().toISOString()
-            }), "rating", sessionId);
-
-            // ビジュアルフィードバック
-            const color = isGood ? '#34a853' : '#ea4335';
-            const bgColor = isGood ? '#e6f4ea' : '#fce8e6';
-            button.style.backgroundColor = bgColor;
-            button.style.borderColor = color;
-            button.style.color = color;
-            
-            // 他のボタンを無効化
-            const otherButton = button.parentElement.querySelector(`button:not([disabled])`);
-            if (otherButton) {
-                otherButton.style.opacity = '0.5';
-                otherButton.disabled = true;
-            }
-            button.disabled = true;
-
-            // フィードバックテキストの更新
-            const ratingText = button.parentElement.parentElement.querySelector('div');
-            ratingText.textContent = "評価ありがとうございます";
-            ratingText.style.color = color;
-        } catch (error) {
-            console.error("評価保存エラー:", error);
-        }
-    };
-
-    return button;
 }
 
 // チャットリセット関数
@@ -327,8 +287,8 @@ async function submitSurvey(event) {
     }
 
     try {
-        const sessionId = SessionManager.getSessionId();
         console.log("Firebaseにアンケート回答を保存中...");
+        const sessionId = getCookieValue('sessionId');
         await saveMessage(JSON.stringify(surveyAnswers), "survey", sessionId);
         
         alert("アンケートにご協力いただき、ありがとうございました。");
@@ -360,119 +320,91 @@ async function submitSurvey(event) {
     }
 }
 
-// 初期化処理
-function initializeChat() {
-    // 評価ボタンのセットアップ
-    setupRatingButtons(satisfactionButtons, 'satisfaction');
-    setupRatingButtons(personalizedButtons, 'personalization');
-    setupRatingButtons(comparisonButtons, 'comparison');
-    setupRatingButtons(intentionButtons, 'intention');
+// 評価ボタンのセットアップ
+setupRatingButtons(satisfactionButtons, 'satisfaction');
+setupRatingButtons(personalizedButtons, 'personalization');
+setupRatingButtons(comparisonButtons, 'comparison');
+setupRatingButtons(intentionButtons, 'intention');
 
-    // イベントリスナーの設定
-    if (sendButton) {
-        sendButton.addEventListener("click", sendMessage);
-        console.log("送信ボタンのリスナーを設定");
-    }
+// イベントリスナーの設定
+console.log("イベントリスナーの設定を開始");
 
-
-    if (resetButton) {
-        resetButton.addEventListener("click", resetChat);
-        console.log("リセットボタンのリスナーを設定");
-    }
-
-    if (questionInput) {
-        questionInput.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") {
-                console.log("Enterキーが押されました");
-                sendMessage();
-            }
-        });
-        console.log("入力フィールドのリスナーを設定");
-    }
-
-    if (endChatButton) {
-        endChatButton.addEventListener("click", endChat);
-        console.log("終了ボタンのリスナーを設定");
-    } else {
-        console.error("終了ボタンが見つかりません");
-    }
-
-    if (submitSurveyButton) {
-        submitSurveyButton.addEventListener("click", submitSurvey);
-        console.log("アンケート送信ボタンのリスナーを設定");
-    } else {
-        console.error("アンケート送信ボタンが見つかりません");
-    }
+if (sendButton) {
+    sendButton.addEventListener("click", sendMessage);
+    console.log("送信ボタンのリスナーを設定");
 }
 
-/**
- * チャット履歴を読み込む関数
- * @returns {Promise<void>}
- */
-async function loadChatHistory() {
-    const sessionId = SessionManager.getSessionId();
-    console.log("セッションID:", sessionId);
-    
-    try {
-        console.log("チャット履歴を読み込み中...");
-        const history = await getChatHistory(sessionId);
-        
-        if (history && history.length > 0) {
-            console.log(`${history.length}件のメッセージを読み込みました`);
-            
-            // メッセージを時系列順にソート
-            const sortedHistory = history.sort((a, b) => {
-                return new Date(a.timestamp) - new Date(b.timestamp);
-            });
+if (resetButton) {
+    resetButton.addEventListener("click", resetChat);
+    console.log("リセットボタンのリスナーを設定");
+}
 
-            // チャット履歴を表示
-            sortedHistory.forEach(message => {
-                if (message.type !== 'rating' && message.type !== 'survey') {
-                    addMessage(message.content, message.type);
-                }
-            });
-        } else {
-            console.log("チャット履歴が空です");
+if (questionInput) {
+    questionInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+            console.log("Enterキーが押されました");
+            sendMessage();
         }
-    } catch (error) {
-        console.error("チャット履歴の読み込みエラー:", error);
-        // エラーが発生しても静かに失敗
-        console.log("チャット履歴の読み込みをスキップします");
+    });
+    console.log("入力フィールドのリスナーを設定");
+}
+
+if (endChatButton) {
+    endChatButton.addEventListener("click", endChat);
+    console.log("終了ボタンのリスナーを設定");
+} else {
+    console.error("終了ボタンが見つかりません");
+}
+
+if (submitSurveyButton) {
+    submitSurveyButton.addEventListener("click", submitSurvey);
+    console.log("アンケート送信ボタンのリスナーを設定");
+} else {
+    console.error("アンケート送信ボタンが見つかりません");
+}
+
+// Cookie値を取得する関数
+function getCookieValue(name) {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.startsWith(name + '=')) {
+            return cookie.substring(name.length + 1);
+        }
+    }
+    return null;
+}
+
+// 初期ロード時のチャット履歴の読み込み
+async function loadChatHistory() {
+    const sessionId = getCookieValue('sessionId');
+    if (sessionId) {
+        console.log("セッションIDが見つかりました:", sessionId);
+        try {
+            console.log("チャット履歴を読み込み中...");
+            const history = await getChatHistory(sessionId);
+            
+            // チャット履歴が存在する場合、メッセージを表示
+            if (history && history.length > 0) {
+                console.log(`${history.length}件のメッセージを読み込みました`);
+                history.forEach(message => {
+                    // typeが'rating'や'survey'でない場合のみ表示
+                    if (message.type !== 'rating' && message.type !== 'survey') {
+                        addMessage(message.content, message.type);
+                    }
+                });
+            } else {
+                console.log("チャット履歴が空です");
+            }
+        } catch (error) {
+            console.error("チャット履歴の読み込みエラー:", error);
+        }
+    } else {
+        console.log("セッションIDが見つかりません");
     }
 }
 
-// アプリケーションの初期化
-async function initializeApplication() {
-    try {
-        console.log("アプリケーションの初期化を開始...");
-        
-        // セッションの初期化
-        const sessionId = SessionManager.getSessionId();
-        console.log("セッションID:", sessionId);
-        
-        // チャットUIの初期化
-        initializeChat();
-        
-        // チャット履歴の読み込み
-        await loadChatHistory();
-        
-        console.log("アプリケーションの初期化が完了しました");
-    } catch (error) {
-        console.error("アプリケーションの初期化中にエラーが発生:", error);
-    }
-}
-
-// アプリケーションの起動
-window.addEventListener('load', initializeApplication);
+// ページロード時にチャット履歴を読み込む
+window.addEventListener('load', loadChatHistory);
 
 console.log("=== frontend-chat.js 読み込み完了 ===");
-
-// エクスポート（必要な場合）
-export {
-    SessionManager,
-    sendMessage,
-    addMessage,
-    resetChat,
-    endChat,
-    submitSurvey
-};
