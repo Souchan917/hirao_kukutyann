@@ -29,15 +29,15 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 console.log('Firebase initialized successfully');
 
-// メッセージを保存する関数
-export async function saveMessage(content, type, questionId) {
-    console.log('Saving message:', { type, questionId });
+// メッセージを保存する関数 (sessionId対応)
+export async function saveMessage(content, type, sessionId) {
+    console.log('Saving message:', { type, sessionId });
     try {
         const messageRef = doc(collection(db, "chatLogs"));
         await setDoc(messageRef, {
             content: content,
             type: type,
-            questionId: questionId,
+            sessionId: sessionId, // questionId を sessionId に変更
             timestamp: new Date()
         });
         console.log('Message saved successfully');
@@ -47,14 +47,27 @@ export async function saveMessage(content, type, questionId) {
     }
 }
 
-// チャット履歴を取得する関数
-export async function getChatHistory(limit = 50) {
-    console.log('Fetching chat history, limit:', limit);
+// チャット履歴を取得する関数 (オプション: sessionIdフィルタ追加)
+export async function getChatHistory(sessionId = null, limit = 50) {
+    console.log('Fetching chat history, limit:', limit, 'sessionId:', sessionId);
     try {
-        const chatQuery = query(
-            collection(db, "chatLogs"), 
-            orderBy("timestamp", "asc")
-        );
+        let chatQuery;
+
+        if (sessionId) {
+            // 特定の sessionId の履歴を取得
+            chatQuery = query(
+                collection(db, "chatLogs"),
+                orderBy("timestamp", "asc"),
+                where("sessionId", "==", sessionId)
+            );
+        } else {
+            // 全履歴を取得
+            chatQuery = query(
+                collection(db, "chatLogs"),
+                orderBy("timestamp", "asc")
+            );
+        }
+
         const querySnapshot = await getDocs(chatQuery);
         const messages = querySnapshot.docs.map(doc => doc.data());
         console.log('Retrieved messages:', messages.length);
