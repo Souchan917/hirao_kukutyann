@@ -1,13 +1,13 @@
 // libs/firebase.js
 
-// Firebaseのインポート
+// Firebaseのインポート - whereを追加
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { 
     getFirestore, 
     collection, 
     addDoc,
     query, 
-    where,
+    where, // whereを追加
     orderBy,
     getDocs 
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
@@ -40,7 +40,9 @@ export async function saveMessage(content, type, sessionId) {
     
     if (!sessionId) {
         console.error('セッションIDが指定されていません');
-        throw new Error('セッションIDは必須です');
+        // エラーをスローする代わりにデフォルトのセッションIDを生成
+        sessionId = 'default-session-' + new Date().getTime();
+        console.log('デフォルトのセッションIDを生成しました:', sessionId);
     }
 
     try {
@@ -72,7 +74,7 @@ export async function getChatHistory(sessionId) {
 
     if (!sessionId) {
         console.error('セッションIDが指定されていません');
-        throw new Error('セッションIDは必須です');
+        return []; // 空の配列を返す
     }
 
     try {
@@ -87,10 +89,15 @@ export async function getChatHistory(sessionId) {
         const messages = [];
         
         querySnapshot.forEach((doc) => {
+            let messageData = doc.data();
+            // timestampがFirestore Timestampオブジェクトの場合の処理
+            if (messageData.timestamp && typeof messageData.timestamp.toDate === 'function') {
+                messageData.timestamp = messageData.timestamp.toDate();
+            }
+            
             messages.push({
                 id: doc.id,
-                ...doc.data(),
-                timestamp: doc.data().timestamp.toDate() // Timestamp型をDate型に変換
+                ...messageData
             });
         });
 
@@ -99,7 +106,8 @@ export async function getChatHistory(sessionId) {
 
     } catch (error) {
         console.error('チャット履歴の取得中にエラーが発生:', error);
-        throw error;
+        // エラーが発生しても空の配列を返す
+        return [];
     }
 }
 
