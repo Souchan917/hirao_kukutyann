@@ -1,15 +1,11 @@
-// 既存のインポートはそのまま
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { initializeApp } from 'firebase/app';
 import { 
     getFirestore, 
     doc, 
     setDoc, 
-    getDocs,
-    getDoc, 
-    collection, 
-    query, 
-    orderBy 
-} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+    getDocs, 
+    collection 
+} from 'firebase/firestore';
 
 // 既存の設定と初期化はそのまま
 const firebaseConfig = {
