@@ -310,3 +310,77 @@ export default async function handler(req, res) {
         });
     }
 }
+
+
+export default async function handler(req, res) {
+    console.log('\n====== チャット処理開始 ======');
+    console.log('受信メッセージ:', req.body.userMessage);
+    
+    const logs = []; // ログ収集用配列
+    logs.push(`受信メッセージ: ${req.body.userMessage}`);
+    
+    const { userMessage } = req.body;
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+        console.error('OPENAI_API_KEYが設定されていません');
+        logs.push('ERROR: OPENAI_API_KEYが設定されていません');
+        return res.status(500).json({ error: 'サーバーの設定エラー: APIキーが設定されていません。', logs });
+    }
+
+    try {
+        console.log('\n[1] メッセージ分類開始');
+        logs.push('[1] メッセージ分類開始');
+        
+        const classificationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-3.5-turbo',
+                messages: [
+                    { role: 'system', content: CLASSIFICATION_PROMPT },
+                    { role: 'user', content: userMessage }
+                ],
+                temperature: 0.3,
+                max_tokens: 50
+            })
+        });
+
+        if (!classificationResponse.ok) {
+            throw new Error(`分類APIエラー: ${classificationResponse.statusText}`);
+        }
+
+        const classificationData = await classificationResponse.json();
+        const messageType = classificationData.choices[0].message.content.trim();
+        console.log('\n=== メッセージ分類結果 ===', messageType);
+        logs.push(`分類結果: ${messageType}`);
+
+        let reply;
+        if (messageType === '相談') {
+            reply = await handleConsultation(userMessage, apiKey);
+        } else {
+            reply = await handleChatting(userMessage, apiKey);
+        }
+
+        logs.push(`最終回答: ${reply}`);
+        console.log('最終回答:', reply);
+
+        res.status(200).json({
+            reply: reply,
+            type: messageType,
+            logs: logs // ログをレスポンスに追加
+        });
+
+    } catch (error) {
+        console.error('エラー詳細:', error);
+        logs.push(`エラー: ${error.message}`);
+        res.status(500).json({ 
+            error: 'AIからの応答の取得に失敗しました',
+            details: error.message,
+            logs: logs // エラーログも追加
+        });
+    }
+}

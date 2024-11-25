@@ -45,8 +45,11 @@ let surveyAnswers = {
     intention: 0
 };
 
-// メッセージ送信関数
 async function sendMessage() {
+    const data = await response.json();
+    console.log("APIからのデータ:", data);
+    console.log("バックエンドログ:", data.logs); // ログをコンソールに出力
+
     console.log("=== sendMessage 関数開始 ===");
 
     if (isSubmitting) {
@@ -72,7 +75,7 @@ async function sendMessage() {
         console.log("Firebaseにユーザーメッセージを保存中...");
         await saveMessage(message, "user", 3);
         console.log("Firebaseにユーザーメッセージが保存されました");
-        
+
         addMessage(message, "user");
 
         console.log("APIにリクエスト送信中...");
@@ -91,7 +94,10 @@ async function sendMessage() {
         }
 
         const data = await response.json();
-        console.log("APIからのデータ:", data);
+        console.log("APIからのデータ:", data); // レスポンス全体を出力
+
+        // AIが生成した応答を明確に表示
+        console.log("AI生成の回答:", data.reply); // 特に AI の応答を明示的に表示
 
         addMessage(data.reply, "ai");
 
