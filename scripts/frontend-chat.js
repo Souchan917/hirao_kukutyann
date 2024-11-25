@@ -45,89 +45,71 @@ let surveyAnswers = {
     intention: 0
 };
 
+// メッセージ送信関数
 async function sendMessage() {
+    console.log("=== sendMessage 関数開始 ===");
+
     if (isSubmitting) {
+        console.log("送信中のため処理をスキップします");
         return;
     }
 
     const message = questionInput.value.trim();
+    console.log("入力されたメッセージ:", message);
+
     if (!message) {
+        console.log("メッセージが空です");
         alert("メッセージを入力してください。");
         return;
     }
 
+    console.log("メッセージ送信プロセス開始");
     isSubmitting = true;
     questionInput.disabled = true;
     sendButton.disabled = true;
 
     try {
-        // ユーザーメッセージを表示
-        addMessage(message, "user");
+        console.log("Firebaseにユーザーメッセージを保存中...");
         await saveMessage(message, "user", 3);
+        console.log("Firebaseにユーザーメッセージが保存されました");
+        
+        addMessage(message, "user");
 
-        // リクエスト送信
-        const response = await fetch("/api/chat", {
+        console.log("APIにリクエスト送信中...");
+        const response = await fetch(apiUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userMessage: message })
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ userMessage: message, questionId: 3 })
         });
+
+        console.log("APIレスポンスステータス:", response.status);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
+        console.log("APIからのデータ:", data);
 
-        if (response.status === 202) {
-            // ポーリング開始
-            await pollForResponse(data.requestId);
-        }
+        addMessage(data.reply, "ai");
+
+        await saveMessage(data.reply, "ai", 3);
+        console.log("FirebaseにAI応答が保存されました");
 
     } catch (error) {
-        console.error("Error:", error);
-        addMessage("エラーが発生しました。もう一度お試しください。", "ai");
+        console.error("チャットフロー内でエラーが発生:", error);
+        addMessage("エラーが発生しました。後でもう一度お試しください。", "ai");
     } finally {
+        console.log("UIをリセットします");
         isSubmitting = false;
         questionInput.disabled = false;
         sendButton.disabled = false;
         questionInput.value = "";
     }
-}
 
-// 新しく追加する関数：ポーリング処理
-async function pollForResponse(requestId) {
-    const maxAttempts = 30; // 最大60秒（2秒 × 30回）
-    const interval = 2000; // 2秒間隔
-    let attempts = 0;
-
-    while (attempts < maxAttempts) {
-        try {
-            const response = await fetch(`/api/chat?requestId=${requestId}`);
-            const data = await response.json();
-
-            if (response.status === 200) {
-                // 完了
-                addMessage(data.reply, "ai");
-                await saveMessage(data.reply, "ai", 3);
-                return;
-            } else if (response.status === 500) {
-                // エラー
-                throw new Error(data.error || 'エラーが発生しました');
-            }
-
-            // まだ処理中の場合は待機
-            await new Promise(resolve => setTimeout(resolve, interval));
-            attempts++;
-
-        } catch (error) {
-            console.error("Polling error:", error);
-            addMessage("エラーが発生しました。もう一度お試しください。", "ai");
-            return;
-        }
-    }
-
-    // タイムアウト
-    addMessage("応答がタイムアウトしました。もう一度お試しください。", "ai");
+    console.log("=== sendMessage 関数終了 ===");
 }
 
 // メッセージ追加関数
