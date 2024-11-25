@@ -18,109 +18,137 @@ const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククち
 - 長男(ポポちゃん・6歳)と長女(ピピちゃん・2歳)がいます。`;
 
 // 分類用のプロンプト
-const CLASSIFICATION_PROMPT = `あなたはカウンセリングの専門家です。
-ユーザーの質問を以下の2つのカテゴリーに分類してください。
+const CLASSIFICATION_PROMPT = `以下のユーザーの質問を「相談」「雑談」のいずれかに分類してください。
 
-1. 相談：具体的な問題や困難についてアドバイスや解決策を求めている質問
+1. 相談：子育ての悩みや問題についてアドバイスを求める質問
 2. 雑談：その他の一般的な会話や軽い話題
 
-ユーザーの質問を分析し、「相談」か「雑談」のどちらかのみを返してください。`;
+回答は「相談」「雑談」のどちらかの1単語のみを返してください。`;
 
-// 相談用のプロンプト
-const CONSULTATION_PROMPT = `${KUKU_PROFILE}
-今から子育ての相談が来ます。以下の点に気をつけて回答してください：
-- 相手の気持ちに寄り添い、共感的な言葉を使う
-- 具体的で実践的なアドバイスを提供する
-- 必要に応じて自身の育児経験を例に出す
-- 深刻な相談の場合は専門家への相談を促す`;
+// 相談処理用の関数
+async function handleConsultation(userMessage, apiKey) {
+    // 1. 意図分析
+    const intentPrompt = `あなたはカウンセリングの専門家です。以下の質問の意図を分析してください：
+    - ユーザーが求めているサポートやアドバイスの内容
+    - 質問の背景にある感情や動機
+    - 期待している解決策や対応
+    
+    質問: "${userMessage}"`;
 
-// 雑談用のプロンプト
-const CHAT_PROMPT = `${KUKU_PROFILE}
-今から雑談的な会話が来ます。以下の点に気をつけて回答してください：
-- 明るく親しみやすい口調で返答する
-- 相手の話題に興味を持って反応する
-- 自然な会話の流れを心がける
-- 必要に応じて自身の育児エピソードを交えて話す`;
+    const intentResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            messages: [
+                { role: 'system', content: intentPrompt },
+                { role: 'user', content: userMessage }
+            ],
+            temperature: 0.7,
+            max_tokens: 200
+        })
+    });
 
-export default async (req, res) => {
+    const intentData = await intentResponse.json();
+    const intent = intentData.choices[0].message.content;
+
+    // 2. 回答生成
+    const responsePrompt = `${KUKU_PROFILE}
+
+相談内容：${userMessage}
+意図分析：${intent}
+
+以下の順で返答を構成してください：
+1. まず相手の気持ちに共感を示す
+2. あなたの育児経験を交えた具体的なアドバイス
+3. 状況をより詳しく知るための質問を1つする`;
+
+    return callOpenAI(responsePrompt, userMessage, apiKey);
+}
+
+// 雑談処理用の関数
+async function handleChatting(userMessage, apiKey) {
+    const prompt = `${KUKU_PROFILE}
+
+ユーザーとの雑談内容：${userMessage}
+
+以下の要素を含めて回答してください：
+1. 明るく親しみやすい口調で話す
+2. あなたの育児エピソードを1つ入れる
+3. 会話を広げるための質問を1つする`;
+
+    return callOpenAI(prompt, userMessage, apiKey);
+}
+
+// OpenAI API呼び出し共通関数
+async function callOpenAI(prompt, userMessage, apiKey) {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            messages: [
+                { role: 'system', content: prompt },
+                { role: 'user', content: userMessage }
+            ],
+            temperature: 0.7,
+            max_tokens: 400
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+}
+
+// メインのハンドラー関数
+export default async function handler(req, res) {
     console.log('API endpoint called');
-    console.log('Request body:', req.body);
-
     const { userMessage } = req.body;
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
-        console.error('OPENAI_API_KEY is not set');
+        console.error('OPENAI_API_KEYが設定されていません');
         return res.status(500).json({ error: 'サーバーの設定エラー: APIキーが設定されていません。' });
     }
 
     try {
-        // まず、メッセージを分類
-        console.log('メッセージの分類を開始...');
-        const classificationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
-                messages: [
-                    { role: 'system', content: CLASSIFICATION_PROMPT },
-                    { role: 'user', content: userMessage }
-                ],
-                temperature: 0.3,
-                max_tokens: 50
-            })
-        });
-
-        if (!classificationResponse.ok) {
-            throw new Error(`分類APIエラー: ${classificationResponse.statusText}`);
-        }
-
-        const classificationData = await classificationResponse.json();
-        const messageType = classificationData.choices[0].message.content.trim();
+        // 1. メッセージの分類
+        console.log('メッセージの分類を開始:', userMessage);
+        const classificationResponse = await callOpenAI(CLASSIFICATION_PROMPT, userMessage, apiKey);
+        const messageType = classificationResponse.trim().toLowerCase();
         console.log('分類結果:', messageType);
 
-        // 分類に基づいて適切なプロンプトを選択
-        const selectedPrompt = messageType === '相談' ? CONSULTATION_PROMPT : CHAT_PROMPT;
-
-        // 選択したプロンプトを使用して回答を生成
-        console.log('回答の生成を開始...');
-        const responseData = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
-                messages: [
-                    { role: 'system', content: selectedPrompt },
-                    { role: 'user', content: userMessage }
-                ],
-                temperature: 0.7,
-                max_tokens: 200
-            })
-        });
-
-        if (!responseData.ok) {
-            throw new Error(`OpenAI API error: ${responseData.statusText}`);
+        // 2. 分類に基づいて適切なハンドラーを選択
+        let reply;
+        if (messageType === '相談') {
+            console.log('相談モードで処理');
+            reply = await handleConsultation(userMessage, apiKey);
+        } else {
+            console.log('雑談モードで処理');
+            reply = await handleChatting(userMessage, apiKey);
         }
 
-        const response = await responseData.json();
-        console.log('回答生成完了');
-        
+        // 3. 結果を返す
         res.status(200).json({
-            reply: response.choices[0].message.content,
+            reply: reply,
             type: messageType
         });
 
     } catch (error) {
-        console.error('Error in chat endpoint:', error);
+        console.error('エラーが発生:', error);
         res.status(500).json({ 
             error: 'AIからの応答の取得に失敗しました',
             details: error.message 
         });
     }
-};
+}
