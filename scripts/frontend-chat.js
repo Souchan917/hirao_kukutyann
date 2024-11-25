@@ -1,4 +1,4 @@
-// インポート
+// frontend-chat.js
 import { saveMessage, getChatHistory } from "../libs/firebase.js";
 
 console.log("=== frontend-chat.js 読み込み開始 ===");
@@ -9,32 +9,15 @@ const chatContainer = document.getElementById("chatContainer");
 const questionInput = document.getElementById("questionInput");
 const sendButton = document.getElementById("sendQuestion");
 const resetButton = document.getElementById("resetChat");
-const endChatButton = document.getElementById("endChat"); // IDベースで取得するように変更
+const endChatButton = document.getElementById("endChat");
 const surveyForm = document.getElementById("survey-form");
-const submitSurveyButton = document.getElementById("submitSurvey"); // IDベースで取得するように変更
+const submitSurveyButton = document.getElementById("submitSurvey");
 
 // 評価ボタングループの取得
 const satisfactionButtons = surveyForm.querySelector('div[aria-label="満足度"]').querySelectorAll('strong');
 const personalizedButtons = surveyForm.querySelector('div[aria-label="個別化された回答"]').querySelectorAll('strong');
 const comparisonButtons = surveyForm.querySelector('div[aria-label="比較"]').querySelectorAll('strong');
 const intentionButtons = surveyForm.querySelector('div[aria-label="意図の理解"]').querySelectorAll('strong');
-
-// DOM要素の存在確認とログ出力
-console.log("DOM要素の確認:", {
-    chatContainer,
-    questionInput,
-    sendButton,
-    resetButton,
-    endChatButton,
-    surveyForm,
-    submitSurveyButton,
-    評価ボタン: {
-        満足度: satisfactionButtons.length,
-        個別化: personalizedButtons.length,
-        比較: comparisonButtons.length,
-        意図: intentionButtons.length
-    }
-});
 
 // 状態管理
 let isSubmitting = false;
@@ -46,10 +29,6 @@ let surveyAnswers = {
 };
 
 async function sendMessage() {
-    const data = await response.json();
-    console.log("APIからのデータ:", data);
-    console.log("バックエンドログ:", data.logs); // ログをコンソールに出力
-
     console.log("=== sendMessage 関数開始 ===");
 
     if (isSubmitting) {
@@ -73,7 +52,8 @@ async function sendMessage() {
 
     try {
         console.log("Firebaseにユーザーメッセージを保存中...");
-        await saveMessage(message, "user", 3);
+        const sessionId = getCookieValue('sessionId');
+        await saveMessage(message, "user", sessionId);
         console.log("Firebaseにユーザーメッセージが保存されました");
 
         addMessage(message, "user");
@@ -84,24 +64,22 @@ async function sendMessage() {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ userMessage: message, questionId: 3 })
+            body: JSON.stringify({ userMessage: message, sessionId: sessionId })
         });
-
-        console.log("APIレスポンスステータス:", response.status);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log("APIからのデータ:", data); // レスポンス全体を出力
+        console.log("APIからのデータ:", data);
 
-        // AIが生成した応答を明確に表示
-        console.log("AI生成の回答:", data.reply); // 特に AI の応答を明示的に表示
+        // AI生成の回答を明確に表示
+        console.log("AI生成の回答:", data.reply);
 
         addMessage(data.reply, "ai");
 
-        await saveMessage(data.reply, "ai", 3);
+        await saveMessage(data.reply, "ai", sessionId);
         console.log("FirebaseにAI応答が保存されました");
 
     } catch (error) {
@@ -196,11 +174,12 @@ function addMessage(content, type) {
         // クリックイベントの追加
         goodBtn.onclick = async () => {
             try {
+                const sessionId = getCookieValue('sessionId');
                 await saveMessage(JSON.stringify({
                     rating: 'good',
                     message: content,
                     timestamp: new Date().toISOString()
-                }), "rating", 3);
+                }), "rating", sessionId);
                 
                 // ビジュアルフィードバック
                 goodBtn.style.backgroundColor = '#e6f4ea';
@@ -220,11 +199,12 @@ function addMessage(content, type) {
 
         badBtn.onclick = async () => {
             try {
+                const sessionId = getCookieValue('sessionId');
                 await saveMessage(JSON.stringify({
                     rating: 'bad',
                     message: content,
                     timestamp: new Date().toISOString()
-                }), "rating", 3);
+                }), "rating", sessionId);
                 
                 // ビジュアルフィードバック
                 badBtn.style.backgroundColor = '#fce8e6';
@@ -307,7 +287,8 @@ async function submitSurvey(event) {
 
     try {
         console.log("Firebaseにアンケート回答を保存中...");
-        await saveMessage(JSON.stringify(surveyAnswers), "survey", 3);
+        const sessionId = getCookieValue('sessionId');
+        await saveMessage(JSON.stringify(surveyAnswers), "survey", sessionId);
         
         alert("アンケートにご協力いただき、ありがとうございました。");
         
@@ -381,14 +362,16 @@ if (submitSurveyButton) {
     console.error("アンケート送信ボタンが見つかりません");
 }
 
-// ESCキーでアンケートをキャンセル
-document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && surveyForm.style.display === 'block') {
-        surveyForm.style.display = 'none';
-        questionInput.disabled = false;
-        sendButton.disabled = false;
-        console.log("ESCキーでアンケートをキャンセルしました");
+// Cookie値を取得する関数
+function getCookieValue(name) {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.startsWith(name + '=')) {
+            return cookie.substring(name.length + 1);
+        }
     }
-});
+    return null;
+}
 
 console.log("=== frontend-chat.js 読み込み完了 ===");

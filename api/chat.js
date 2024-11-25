@@ -1,5 +1,6 @@
 // api/chat.js
 import fetch from 'node-fetch';
+import { v4 as uuidv4 } from 'uuid';
 
 // くくちゃんの基本プロンプト
 const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククちゃん"として会話を行います。
@@ -238,7 +239,7 @@ async function handleChatting(userMessage, apiKey) {
 export default async function handler(req, res) {
     console.log('\n====== チャット処理開始 ======');
     console.log('受信メッセージ:', req.body.userMessage);
-    
+
     const { userMessage } = req.body;
     const apiKey = process.env.OPENAI_API_KEY;
 
@@ -247,11 +248,18 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'サーバーの設定エラー: APIキーが設定されていません。' });
     }
 
+    // セッションIDの管理
+    let sessionId = req.cookies.sessionId;
+    if (!sessionId) {
+        sessionId = uuidv4(); // 新しいセッションIDを生成
+        res.setHeader('Set-Cookie', `sessionId=${sessionId}; HttpOnly; Path=/`);
+    }
+
     try {
         // 1. メッセージの分類
         console.log('\n[1] メッセージ分類開始');
         console.log('分類プロンプト:', CLASSIFICATION_PROMPT);
-        
+
         const classificationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -284,16 +292,16 @@ export default async function handler(req, res) {
         let reply;
         if (messageType === '相談') {
             console.log('\n[2] 相談モードで処理開始');
-            reply = await handleConsultation(userMessage, apiKey);
+            reply = await handleConsultation(userMessage, apiKey, sessionId);
         } else {
             console.log('\n[2] 雑談モードで処理開始');
-            reply = await handleChatting(userMessage, apiKey);
+            reply = await handleChatting(userMessage, apiKey, sessionId);
         }
 
         // 3. 結果を返す
         console.log('\n[3] 最終結果:', { type: messageType, reply: reply });
         console.log('====== チャット処理完了 ======\n');
-        
+
         res.status(200).json({
             reply: reply,
             type: messageType
@@ -303,10 +311,10 @@ export default async function handler(req, res) {
         console.error('\n!!!! エラー発生 !!!!');
         console.error('エラー詳細:', error);
         console.error('====== チャット処理異常終了 ======\n');
-        
-        res.status(500).json({ 
+
+        res.status(500).json({
             error: 'AIからの応答の取得に失敗しました',
-            details: error.message 
+            details: error.message
         });
     }
 }
