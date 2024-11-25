@@ -1,4 +1,7 @@
+// =====================
 // api/chat.js
+// =====================
+
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -42,8 +45,6 @@ async function handleConsultation(userMessage, apiKey) {
     ユーザーの質問: '${userMessage}'
     
     意図の分析: ~~~`;
-    
-    console.log('意図分析プロンプト:', intentPrompt);
 
     const intentResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -63,13 +64,8 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`意図分析APIエラー: ${intentResponse.statusText}`);
     }
 
-    // 意図分析の結果をより見やすく出力
     const intentData = await intentResponse.json();
     const intentContent = intentData.choices[0].message.content.trim();
-    console.log('\n=== 意図分析の生成結果 ===');
-    console.log('--------------------');
-    console.log(intentContent);
-    console.log('--------------------\n');
 
     // 2. 追加質問の提案
     console.log('\n[2] 追加質問生成開始');
@@ -81,8 +77,6 @@ async function handleConsultation(userMessage, apiKey) {
     意図の分析: '${intentContent}'
 
     追加質問の提案: ~~~`;
-
-    console.log('追加質問プロンプト:', followUpPrompt);
 
     const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -102,13 +96,8 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`追加質問生成APIエラー: ${followUpResponse.statusText}`);
     }
 
-    // 追加質問の結果をより見やすく出力
     const followUpData = await followUpResponse.json();
     const followUpContent = followUpData.choices[0].message.content.trim();
-    console.log('\n=== 追加質問の生成結果 ===');
-    console.log('--------------------');
-    console.log(followUpContent);
-    console.log('--------------------\n');
 
     // 3. 最終的な回答生成
     console.log('\n[3] 最終回答生成開始');
@@ -122,8 +111,6 @@ async function handleConsultation(userMessage, apiKey) {
     追加の質問提案: ${followUpContent}
 
     ユーザーへの返答: ~~~`;
-
-    console.log('最終回答プロンプト:', finalPrompt);
 
     const finalResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -143,13 +130,8 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`最終回答生成APIエラー: ${finalResponse.statusText}`);
     }
 
-    // 最終回答の結果をより見やすく出力
     const finalData = await finalResponse.json();
     const finalContent = finalData.choices[0].message.content.trim();
-    console.log('\n=== 最終回答の生成結果 ===');
-    console.log('--------------------');
-    console.log(finalContent);
-    console.log('--------------------\n');
     console.log('=== 相談処理完了 ===\n');
 
     return finalContent;
@@ -171,8 +153,6 @@ async function handleChatting(userMessage, apiKey) {
 
     追加質問の提案: ~~~`;
 
-    console.log('追加質問プロンプト:', followUpPrompt);
-
     const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -193,7 +173,6 @@ async function handleChatting(userMessage, apiKey) {
 
     const followUpData = await followUpResponse.json();
     const followUpContent = followUpData.choices[0].message.content.trim();
-    console.log('追加質問生成結果:', followUpContent);
 
     // 2. 最終的な回答生成
     console.log('\n[2] 最終回答生成開始');
@@ -206,8 +185,6 @@ async function handleChatting(userMessage, apiKey) {
     追加の質問提案: ${followUpContent}
 
     ユーザーへの返答: ~~~`;
-
-    console.log('最終回答プロンプト:', responsePrompt);
 
     const finalResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -229,7 +206,6 @@ async function handleChatting(userMessage, apiKey) {
 
     const finalData = await finalResponse.json();
     const finalContent = finalData.choices[0].message.content.trim();
-    console.log('\n最終回答:', finalContent);
     console.log('=== 雑談処理完了 ===\n');
 
     return finalContent;
@@ -251,15 +227,13 @@ export default async function handler(req, res) {
     // セッションIDの管理
     let sessionId = req.cookies.sessionId;
     if (!sessionId) {
-        sessionId = uuidv4(); // 新しいセッションIDを生成
-        res.setHeader('Set-Cookie', `sessionId=${sessionId}; HttpOnly; Path=/`);
+        sessionId = uuidv4();
+        res.setHeader('Set-Cookie', `sessionId=${sessionId}; HttpOnly; Path=/; Max-Age=86400`); // 24時間有効
     }
 
     try {
         // 1. メッセージの分類
         console.log('\n[1] メッセージ分類開始');
-        console.log('分類プロンプト:', CLASSIFICATION_PROMPT);
-
         const classificationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -283,28 +257,23 @@ export default async function handler(req, res) {
 
         const classificationData = await classificationResponse.json();
         const messageType = classificationData.choices[0].message.content.trim();
-        console.log('\n=== メッセージ分類結果 ===');
-        console.log('--------------------');
-        console.log(`分類: ${messageType}`);
-        console.log('--------------------\n');
 
         // 2. 分類に基づいて処理を分岐
         let reply;
         if (messageType === '相談') {
-            console.log('\n[2] 相談モードで処理開始');
-            reply = await handleConsultation(userMessage, apiKey, sessionId);
+            reply = await handleConsultation(userMessage, apiKey);
         } else {
-            console.log('\n[2] 雑談モードで処理開始');
-            reply = await handleChatting(userMessage, apiKey, sessionId);
+            reply = await handleChatting(userMessage, apiKey);
         }
 
         // 3. 結果を返す
-        console.log('\n[3] 最終結果:', { type: messageType, reply: reply });
+        console.log('\n[3] 最終結果:', { type: messageType, reply: reply, sessionId: sessionId });
         console.log('====== チャット処理完了 ======\n');
 
         res.status(200).json({
             reply: reply,
-            type: messageType
+            type: messageType,
+            sessionId: sessionId
         });
 
     } catch (error) {

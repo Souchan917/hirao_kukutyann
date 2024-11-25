@@ -28,6 +28,7 @@ let surveyAnswers = {
     intention: 0
 };
 
+// メッセージ送信関数
 async function sendMessage() {
     console.log("=== sendMessage 関数開始 ===");
 
@@ -51,20 +52,25 @@ async function sendMessage() {
     sendButton.disabled = true;
 
     try {
-        console.log("Firebaseにユーザーメッセージを保存中...");
+        // セッションIDを取得
         const sessionId = getCookieValue('sessionId');
+        console.log("現在のセッションID:", sessionId);
+
+        // ユーザーメッセージを保存
+        console.log("Firebaseにユーザーメッセージを保存中...");
         await saveMessage(message, "user", sessionId);
-        console.log("Firebaseにユーザーメッセージが保存されました");
+        console.log("ユーザーメッセージが保存されました");
 
         addMessage(message, "user");
 
+        // APIリクエスト
         console.log("APIにリクエスト送信中...");
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ userMessage: message, sessionId: sessionId })
+            body: JSON.stringify({ userMessage: message })
         });
 
         if (!response.ok) {
@@ -72,18 +78,15 @@ async function sendMessage() {
         }
 
         const data = await response.json();
-        console.log("APIからのデータ:", data);
+        console.log("APIからのレスポンス:", data);
 
-        // AI生成の回答を明確に表示
-        console.log("AI生成の回答:", data.reply);
-
+        // AI応答を保存して表示
         addMessage(data.reply, "ai");
-
         await saveMessage(data.reply, "ai", sessionId);
-        console.log("FirebaseにAI応答が保存されました");
+        console.log("AI応答がFirebaseに保存されました");
 
     } catch (error) {
-        console.error("チャットフロー内でエラーが発生:", error);
+        console.error("チャットフロー内でエラー:", error);
         addMessage("エラーが発生しました。後でもう一度お試しください。", "ai");
     } finally {
         console.log("UIをリセットします");
@@ -189,7 +192,6 @@ function addMessage(content, type) {
                 goodBtn.disabled = true;
                 badBtn.disabled = true;
                 
-                // 確認メッセージ
                 ratingText.textContent = "評価ありがとうございます";
                 ratingText.style.color = '#34a853';
             } catch (error) {
@@ -214,7 +216,6 @@ function addMessage(content, type) {
                 goodBtn.disabled = true;
                 badBtn.disabled = true;
                 
-                // 確認メッセージ
                 ratingText.textContent = "評価ありがとうございます";
                 ratingText.style.color = '#ea4335';
             } catch (error) {
@@ -373,5 +374,37 @@ function getCookieValue(name) {
     }
     return null;
 }
+
+// 初期ロード時のチャット履歴の読み込み
+async function loadChatHistory() {
+    const sessionId = getCookieValue('sessionId');
+    if (sessionId) {
+        console.log("セッションIDが見つかりました:", sessionId);
+        try {
+            console.log("チャット履歴を読み込み中...");
+            const history = await getChatHistory(sessionId);
+            
+            // チャット履歴が存在する場合、メッセージを表示
+            if (history && history.length > 0) {
+                console.log(`${history.length}件のメッセージを読み込みました`);
+                history.forEach(message => {
+                    // typeが'rating'や'survey'でない場合のみ表示
+                    if (message.type !== 'rating' && message.type !== 'survey') {
+                        addMessage(message.content, message.type);
+                    }
+                });
+            } else {
+                console.log("チャット履歴が空です");
+            }
+        } catch (error) {
+            console.error("チャット履歴の読み込みエラー:", error);
+        }
+    } else {
+        console.log("セッションIDが見つかりません");
+    }
+}
+
+// ページロード時にチャット履歴を読み込む
+window.addEventListener('load', loadChatHistory);
 
 console.log("=== frontend-chat.js 読み込み完了 ===");
