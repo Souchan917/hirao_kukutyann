@@ -117,7 +117,74 @@ function addMessage(content, type) {
     console.log(`addMessage関数実行: ${type}メッセージを追加`);
     const messageDiv = document.createElement("div");
     messageDiv.className = type === "user" ? "user-message" : "ai-message";
+    
+    // メッセージ本文を追加
     messageDiv.textContent = content;
+    
+    // AIの返答の場合のみ評価ボタンを追加
+    if (type === "ai") {
+        const ratingDiv = document.createElement("div");
+        ratingDiv.className = "message-rating";
+        ratingDiv.style.marginTop = "5px";
+        ratingDiv.style.textAlign = "right";
+        
+        // 👍ボタン
+        const goodBtn = document.createElement("button");
+        goodBtn.innerHTML = "👍";
+        goodBtn.style.background = "none";
+        goodBtn.style.border = "none";
+        goodBtn.style.cursor = "pointer";
+        goodBtn.style.marginRight = "10px";
+        
+        // 👎ボタン
+        const badBtn = document.createElement("button");
+        badBtn.innerHTML = "👎";
+        badBtn.style.background = "none";
+        badBtn.style.border = "none";
+        badBtn.style.cursor = "pointer";
+        
+        // 評価イベントの追加
+        goodBtn.onclick = async () => {
+            try {
+                await saveMessage(JSON.stringify({
+                    rating: 'good',
+                    message: content,
+                    timestamp: new Date().toISOString()
+                }), "rating", 3);
+                
+                // ボタンを無効化
+                goodBtn.disabled = true;
+                badBtn.disabled = true;
+                goodBtn.style.opacity = "1";
+                badBtn.style.opacity = "0.3";
+            } catch (error) {
+                console.error("評価保存エラー:", error);
+            }
+        };
+        
+        badBtn.onclick = async () => {
+            try {
+                await saveMessage(JSON.stringify({
+                    rating: 'bad',
+                    message: content,
+                    timestamp: new Date().toISOString()
+                }), "rating", 3);
+                
+                // ボタンを無効化
+                goodBtn.disabled = true;
+                badBtn.disabled = true;
+                badBtn.style.opacity = "1";
+                goodBtn.style.opacity = "0.3";
+            } catch (error) {
+                console.error("評価保存エラー:", error);
+            }
+        };
+        
+        ratingDiv.appendChild(goodBtn);
+        ratingDiv.appendChild(badBtn);
+        messageDiv.appendChild(ratingDiv);
+    }
+    
     chatContainer.appendChild(messageDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
