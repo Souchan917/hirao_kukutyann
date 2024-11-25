@@ -62,9 +62,13 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`意図分析APIエラー: ${intentResponse.statusText}`);
     }
 
+    // 意図分析の結果をより見やすく出力
     const intentData = await intentResponse.json();
     const intentContent = intentData.choices[0].message.content.trim();
-    console.log('意図分析結果:', intentContent);
+    console.log('\n=== 意図分析の生成結果 ===');
+    console.log('--------------------');
+    console.log(intentContent);
+    console.log('--------------------\n');
 
     // 2. 追加質問の提案
     console.log('\n[2] 追加質問生成開始');
@@ -97,9 +101,13 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`追加質問生成APIエラー: ${followUpResponse.statusText}`);
     }
 
+    // 追加質問の結果をより見やすく出力
     const followUpData = await followUpResponse.json();
     const followUpContent = followUpData.choices[0].message.content.trim();
-    console.log('追加質問生成結果:', followUpContent);
+    console.log('\n=== 追加質問の生成結果 ===');
+    console.log('--------------------');
+    console.log(followUpContent);
+    console.log('--------------------\n');
 
     // 3. 最終的な回答生成
     console.log('\n[3] 最終回答生成開始');
@@ -134,9 +142,13 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`最終回答生成APIエラー: ${finalResponse.statusText}`);
     }
 
+    // 最終回答の結果をより見やすく出力
     const finalData = await finalResponse.json();
     const finalContent = finalData.choices[0].message.content.trim();
-    console.log('\n最終回答:', finalContent);
+    console.log('\n=== 最終回答の生成結果 ===');
+    console.log('--------------------');
+    console.log(finalContent);
+    console.log('--------------------\n');
     console.log('=== 相談処理完了 ===\n');
 
     return finalContent;
