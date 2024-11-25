@@ -275,7 +275,10 @@ export default async function handler(req, res) {
 
         const classificationData = await classificationResponse.json();
         const messageType = classificationData.choices[0].message.content.trim();
-        console.log('分類結果:', messageType);
+        console.log('\n=== メッセージ分類結果 ===');
+        console.log('--------------------');
+        console.log(`分類: ${messageType}`);
+        console.log('--------------------\n');
 
         // 2. 分類に基づいて処理を分岐
         let reply;
