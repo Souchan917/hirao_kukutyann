@@ -1,9 +1,8 @@
-// =====================
 // api/chat.js
-// =====================
 
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
+import { getChatHistory } from '../libs/firebase.js';  // Firebaseのインポートを追加
 
 /**
  * 過去の会話履歴をプロンプト用に整形する関数
@@ -240,7 +239,7 @@ async function handleChatting(userMessage, apiKey) {
     return finalContent;
 }
 
-// メインのハンドラー関数
+// メインのハンドラー関数を修正
 export default async function handler(req, res) {
     console.log('\n====== チャット処理開始 ======');
     console.log('受信メッセージ:', req.body.userMessage);
@@ -253,19 +252,29 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'サーバーの設定エラー: APIキーが設定されていません。' });
     }
 
-    // セッションIDの管理
-    let sessionId = req.cookies.sessionId;
-    if (!sessionId) {
-        sessionId = uuidv4();
-        res.setHeader('Set-Cookie', `sessionId=${sessionId}; HttpOnly; Path=/; Max-Age=86400`);
-    }
-
     try {
-        // 会話履歴の取得
-        const chatHistory = await getChatHistory(sessionId);
-        const formattedHistory = formatConversationHistory(chatHistory);
+        // セッションIDの管理
+        let sessionId = req.cookies.sessionId;
+        if (!sessionId) {
+            sessionId = uuidv4();
+            res.setHeader('Set-Cookie', `sessionId=${sessionId}; HttpOnly; Path=/; Max-Age=86400`);
+        }
 
-        // 1. メッセージの分類
+        // 会話履歴の取得
+        let chatHistory = [];
+        try {
+            chatHistory = await getChatHistory(sessionId);
+            console.log('会話履歴を取得しました:', chatHistory.length, '件');
+        } catch (error) {
+            console.error('会話履歴の取得中にエラー:', error);
+            // エラーが発生しても処理を継続
+        }
+
+        // 会話履歴の整形
+        const formattedHistory = formatConversationHistory(chatHistory);
+        console.log('整形された会話履歴:', formattedHistory);
+
+        // メッセージの分類
         const classificationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -290,20 +299,25 @@ export default async function handler(req, res) {
         const classificationData = await classificationResponse.json();
         const messageType = classificationData.choices[0].message.content.trim();
 
-        // 2. 分類に基づいて処理を分岐（相談のみ実装）
+        // 分類に基づいて処理を分岐
         let reply;
-        if (messageType === '相談') {
-            reply = await handleConsultation(userMessage, apiKey, formattedHistory);
-        } else {
-            // 雑談処理は後で実装
-            reply = await handleConsultation(userMessage, apiKey, formattedHistory);
+        try {
+            if (messageType === '相談') {
+                reply = await handleConsultation(userMessage, apiKey, formattedHistory);
+            } else {
+                // 暫定的に全て相談として処理
+                reply = await handleConsultation(userMessage, apiKey, formattedHistory);
+            }
+        } catch (error) {
+            console.error('応答生成中にエラー:', error);
+            throw new Error('応答の生成に失敗しました');
         }
 
-        // 3. 結果を返す
+        // 結果を返す
         console.log('\n[3] 最終結果:', { type: messageType, reply: reply, sessionId: sessionId });
         console.log('====== チャット処理完了 ======\n');
 
-        res.status(200).json({
+        return res.status(200).json({
             reply: reply,
             type: messageType,
             sessionId: sessionId
@@ -314,9 +328,9 @@ export default async function handler(req, res) {
         console.error('エラー詳細:', error);
         console.error('====== チャット処理異常終了 ======\n');
 
-        res.status(500).json({
+        return res.status(500).json({
             error: 'AIからの応答の取得に失敗しました',
-            details: error.message
+            details: error.message || '不明なエラーが発生しました'
         });
     }
 }
