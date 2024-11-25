@@ -4,7 +4,9 @@ import {
     doc, 
     setDoc, 
     getDocs, 
-    collection 
+    collection, 
+    query, 
+    orderBy 
 } from 'firebase/firestore';
 
 // 既存の設定と初期化はそのまま
