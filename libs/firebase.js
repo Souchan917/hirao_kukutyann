@@ -29,49 +29,60 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 console.log('Firebase initialized successfully');
 
-// メッセージを保存する関数 (sessionId対応)
-export async function saveMessage(content, type, sessionId) {
-    console.log('Saving message:', { type, sessionId });
+// メッセージを保存する関数（1つのドキュメントに統合）
+export async function saveSessionData(sessionId, userMessage, aiResponse) {
+    console.log('Saving session data:', { sessionId });
+
     try {
-        const messageRef = doc(collection(db, "chatLogs"));
-        await setDoc(messageRef, {
-            content: content,
-            type: type,
-            sessionId: sessionId, // questionId を sessionId に変更
-            timestamp: new Date()
-        });
-        console.log('Message saved successfully');
+        // ドキュメント参照 (セッションIDごとに1つのドキュメント)
+        const sessionRef = doc(collection(db, "chatLogs"), sessionId);
+
+        // 既存のデータを取得
+        const existingDoc = await getDocs(sessionRef);
+        let messages = [];
+
+        if (existingDoc.exists()) {
+            // 既存のメッセージを取得
+            messages = existingDoc.data().messages || [];
+        }
+
+        // 新しいメッセージを追加
+        messages.push(
+            {
+                type: "user",
+                content: userMessage,
+                timestamp: new Date().toISOString()
+            },
+            {
+                type: "ai",
+                content: aiResponse,
+                timestamp: new Date().toISOString()
+            }
+        );
+
+        // Firestoreにドキュメントを保存（または更新）
+        await setDoc(sessionRef, { sessionId, messages });
+        console.log('Session data saved successfully');
     } catch (error) {
-        console.error('Error saving message:', error);
+        console.error('Error saving session data:', error);
         throw error;
     }
 }
 
-// チャット履歴を取得する関数 (オプション: sessionIdフィルタ追加)
-export async function getChatHistory(sessionId = null, limit = 50) {
-    console.log('Fetching chat history, limit:', limit, 'sessionId:', sessionId);
+// チャット履歴を取得する関数（セッション単位）
+export async function getChatHistory(sessionId) {
+    console.log('Fetching chat history for session:', sessionId);
     try {
-        let chatQuery;
+        const sessionRef = doc(collection(db, "chatLogs"), sessionId);
+        const sessionDoc = await getDocs(sessionRef);
 
-        if (sessionId) {
-            // 特定の sessionId の履歴を取得
-            chatQuery = query(
-                collection(db, "chatLogs"),
-                orderBy("timestamp", "asc"),
-                where("sessionId", "==", sessionId)
-            );
+        if (sessionDoc.exists()) {
+            console.log('Retrieved session data:', sessionDoc.data());
+            return sessionDoc.data().messages || [];
         } else {
-            // 全履歴を取得
-            chatQuery = query(
-                collection(db, "chatLogs"),
-                orderBy("timestamp", "asc")
-            );
+            console.warn('No chat history found for session:', sessionId);
+            return [];
         }
-
-        const querySnapshot = await getDocs(chatQuery);
-        const messages = querySnapshot.docs.map(doc => doc.data());
-        console.log('Retrieved messages:', messages.length);
-        return messages;
     } catch (error) {
         console.error('Error getting chat history:', error);
         throw error;

@@ -36,35 +36,29 @@ async function sendMessage() {
         return;
     }
 
-    const message = questionInput.value.trim();
-    console.log("入力されたメッセージ:", message);
+    const userMessage = questionInput.value.trim();
+    const sessionId = getCookieValue('sessionId'); // セッションIDを取得
+    console.log("入力されたメッセージ:", userMessage);
 
-    if (!message) {
+    if (!userMessage) {
         console.log("メッセージが空です");
         alert("メッセージを入力してください。");
         return;
     }
 
-    console.log("メッセージ送信プロセス開始");
     isSubmitting = true;
     questionInput.disabled = true;
     sendButton.disabled = true;
 
     try {
-        console.log("Firebaseにユーザーメッセージを保存中...");
-        const sessionId = getCookieValue('sessionId');
-        await saveMessage(message, "user", sessionId);
-        console.log("Firebaseにユーザーメッセージが保存されました");
-
-        addMessage(message, "user");
+        // ユーザーメッセージを画面に追加
+        addMessage(userMessage, "user");
 
         console.log("APIにリクエスト送信中...");
         const response = await fetch(apiUrl, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ userMessage: message, sessionId: sessionId })
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userMessage, sessionId })
         });
 
         if (!response.ok) {
@@ -74,27 +68,26 @@ async function sendMessage() {
         const data = await response.json();
         console.log("APIからのデータ:", data);
 
-        // AI生成の回答を明確に表示
-        console.log("AI生成の回答:", data.reply);
+        const aiResponse = data.reply;
 
-        addMessage(data.reply, "ai");
+        // AIの応答を画面に追加
+        addMessage(aiResponse, "ai");
 
-        await saveMessage(data.reply, "ai", sessionId);
-        console.log("FirebaseにAI応答が保存されました");
+        // 質問とAIの返答をまとめてFirestoreに保存
+        await saveSessionData(sessionId, userMessage, aiResponse);
 
     } catch (error) {
-        console.error("チャットフロー内でエラーが発生:", error);
-        addMessage("エラーが発生しました。後でもう一度お試しください。", "ai");
+        console.error("エラーが発生:", error);
     } finally {
-        console.log("UIをリセットします");
-        isSubmitting = false;
         questionInput.disabled = false;
         sendButton.disabled = false;
         questionInput.value = "";
+        isSubmitting = false;
     }
 
     console.log("=== sendMessage 関数終了 ===");
 }
+
 
 // メッセージ追加関数
 function addMessage(content, type) {
