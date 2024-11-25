@@ -1,17 +1,18 @@
-// 既存のインポートはそのまま
+// libs/firebase.js
+
+// インポートパスを修正
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { 
     getFirestore, 
     doc, 
     setDoc, 
-    getDocs,
-    getDoc, 
+    getDocs, 
     collection, 
     query, 
     orderBy 
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-// 既存の設定と初期化はそのまま
+// Firebase設定
 const firebaseConfig = {
     apiKey: "AIzxSyACzVcf8eNzcu698PdbKKRVcbStH821avc",
     authDomain: "kukutyan-f48ae.firebaseapp.com",
@@ -22,49 +23,47 @@ const firebaseConfig = {
     measurementId: "G-8F3DC6V2M7"
 };
 
+// Firebaseの初期化
+console.log('Initializing Firebase...');
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+console.log('Firebase initialized successfully');
 
-// 既存の関数はそのまま維持
+// メッセージを保存する関数
 export async function saveMessage(content, type, questionId) {
-    // 既存のコード
-}
-
-export async function getChatHistory(limit = 50) {
-    // 既存のコード
-}
-
-// 新しく追加する関数：チャット応答の保存
-export async function saveResponseToFirebase(requestId, data) {
-    console.log('Saving response to Firebase:', { requestId, data });
+    console.log('Saving message:', { type, questionId });
     try {
-        const responseRef = doc(db, "chat_responses", requestId);
-        await setDoc(responseRef, {
-            ...data,
-            timestamp: new Date().toISOString()
+        const messageRef = doc(collection(db, "chatLogs"));
+        await setDoc(messageRef, {
+            content: content,
+            type: type,
+            questionId: questionId,
+            timestamp: new Date()
         });
-        console.log('Response saved successfully');
-        return true;
+        console.log('Message saved successfully');
     } catch (error) {
-        console.error('Error saving response:', error);
+        console.error('Error saving message:', error);
         throw error;
     }
 }
 
-// 新しく追加する関数：チャット応答の取得
-export async function getResponseFromFirebase(requestId) {
-    console.log('Getting response from Firebase:', requestId);
+// チャット履歴を取得する関数
+export async function getChatHistory(limit = 50) {
+    console.log('Fetching chat history, limit:', limit);
     try {
-        const responseRef = doc(db, "chat_responses", requestId);
-        const docSnap = await getDoc(responseRef);
-        if (docSnap.exists()) {
-            return docSnap.data();
-        }
-        return null;
+        const chatQuery = query(
+            collection(db, "chatLogs"), 
+            orderBy("timestamp", "asc")
+        );
+        const querySnapshot = await getDocs(chatQuery);
+        const messages = querySnapshot.docs.map(doc => doc.data());
+        console.log('Retrieved messages:', messages.length);
+        return messages;
     } catch (error) {
-        console.error('Error getting response:', error);
+        console.error('Error getting chat history:', error);
         throw error;
     }
 }
 
+// dbをエクスポート
 export { db };
