@@ -19,6 +19,9 @@ const personalizedButtons = surveyForm.querySelector('div[aria-label="個別化�
 const comparisonButtons = surveyForm.querySelector('div[aria-label="比較"]').querySelectorAll('strong');
 const intentionButtons = surveyForm.querySelector('div[aria-label="意図の理解"]').querySelectorAll('strong');
 
+// セッション管理用の定数
+const SESSION_STORAGE_KEY = 'kukuchan_session_id';
+
 // 状態管理
 let isSubmitting = false;
 let surveyAnswers = {
@@ -27,6 +30,42 @@ let surveyAnswers = {
     comparison: 0,
     intention: 0
 };
+
+// セッション管理の関数
+function getOrCreateSessionId() {
+    // まずSessionStorageからセッションIDを取得
+    let sessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    
+    if (!sessionId) {
+        // Cookieに既存のセッションIDがあるか確認
+        sessionId = getCookieValue('sessionId');
+        
+        if (!sessionId) {
+            // 新しいセッションIDを生成
+            sessionId = 'session-' + new Date().getTime() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        // SessionStorageに保存
+        sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+        console.log("新しいセッションIDを生成:", sessionId);
+    } else {
+        console.log("既存のセッションIDを使用:", sessionId);
+    }
+    
+    return sessionId;
+}
+
+// Cookie値を取得する関数
+function getCookieValue(name) {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.startsWith(name + '=')) {
+            return cookie.substring(name.length + 1);
+        }
+    }
+    return null;
+}
 
 // メッセージ送信関数
 async function sendMessage() {
@@ -52,8 +91,7 @@ async function sendMessage() {
     sendButton.disabled = true;
 
     try {
-        // セッションIDを取得
-        const sessionId = getCookieValue('sessionId');
+        const sessionId = getOrCreateSessionId();
         console.log("現在のセッションID:", sessionId);
 
         // ユーザーメッセージを保存
@@ -68,7 +106,8 @@ async function sendMessage() {
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "X-Session-ID": sessionId
             },
             body: JSON.stringify({ userMessage: message })
         });
@@ -177,7 +216,7 @@ function addMessage(content, type) {
         // クリックイベントの追加
         goodBtn.onclick = async () => {
             try {
-                const sessionId = getCookieValue('sessionId');
+                const sessionId = getOrCreateSessionId();
                 await saveMessage(JSON.stringify({
                     rating: 'good',
                     message: content,
@@ -201,7 +240,7 @@ function addMessage(content, type) {
 
         badBtn.onclick = async () => {
             try {
-                const sessionId = getCookieValue('sessionId');
+                const sessionId = getOrCreateSessionId();
                 await saveMessage(JSON.stringify({
                     rating: 'bad',
                     message: content,
@@ -288,7 +327,7 @@ async function submitSurvey(event) {
 
     try {
         console.log("Firebaseにアンケート回答を保存中...");
-        const sessionId = getCookieValue('sessionId');
+        const sessionId = getOrCreateSessionId();
         await saveMessage(JSON.stringify(surveyAnswers), "survey", sessionId);
         
         alert("アンケートにご協力いただき、ありがとうございました。");
@@ -317,6 +356,30 @@ async function submitSurvey(event) {
     } catch (error) {
         console.error("アンケート送信エラー:", error);
         alert("アンケートの送信に失敗しました。もう一度お試しください。");
+    }
+}
+
+// チャット履歴読み込み関数
+async function loadChatHistory() {
+    const sessionId = getOrCreateSessionId();
+    console.log("セッションIDを取得:", sessionId);
+
+    try {
+        console.log("チャット履歴を読み込み中...");
+        const history = await getChatHistory(sessionId);
+        
+        if (history && history.length > 0) {
+            console.log(`${history.length}件のメッセージを読み込みました`);
+            history.forEach(message => {
+                if (message.type !== 'rating' && message.type !== 'survey') {
+                    addMessage(message.content, message.type);
+                }
+            });
+        } else {
+            console.log("チャット履歴が空です");
+        }
+    } catch (error) {
+        console.error("チャット履歴の読み込みエラー:", error);
     }
 }
 
@@ -363,48 +426,18 @@ if (submitSurveyButton) {
     console.error("アンケート送信ボタンが見つかりません");
 }
 
-// Cookie値を取得する関数
-function getCookieValue(name) {
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.startsWith(name + '=')) {
-            return cookie.substring(name.length + 1);
-        }
-    }
-    return null;
-}
+// ページロード時のイベントリスナー
+window.addEventListener('load', () => {
+    console.log("ページロード時の初期化を開始");
+    loadChatHistory();
+});
 
-// 初期ロード時のチャット履歴の読み込み
-async function loadChatHistory() {
-    const sessionId = getCookieValue('sessionId');
-    if (sessionId) {
-        console.log("セッションIDが見つかりました:", sessionId);
-        try {
-            console.log("チャット履歴を読み込み中...");
-            const history = await getChatHistory(sessionId);
-            
-            // チャット履歴が存在する場合、メッセージを表示
-            if (history && history.length > 0) {
-                console.log(`${history.length}件のメッセージを読み込みました`);
-                history.forEach(message => {
-                    // typeが'rating'や'survey'でない場合のみ表示
-                    if (message.type !== 'rating' && message.type !== 'survey') {
-                        addMessage(message.content, message.type);
-                    }
-                });
-            } else {
-                console.log("チャット履歴が空です");
-            }
-        } catch (error) {
-            console.error("チャット履歴の読み込みエラー:", error);
-        }
-    } else {
-        console.log("セッションIDが見つかりません");
+// セッションストレージの変更を監視（別タブとの同期用）
+window.addEventListener('storage', (event) => {
+    if (event.key === SESSION_STORAGE_KEY) {
+        console.log("セッションストレージの変更を検出:", event.newValue);
+        loadChatHistory();
     }
-}
-
-// ページロード時にチャット履歴を読み込む
-window.addEventListener('load', loadChatHistory);
+});
 
 console.log("=== frontend-chat.js 読み込み完了 ===");
