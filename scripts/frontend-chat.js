@@ -32,21 +32,24 @@ let surveyAnswers = {
 };
 
 // セッション管理の関数
-function getOrCreateSessionId() {
-    // まずSessionStorageからセッションIDを取得
+function getOrCreateSessionId(forceNew = false) {
+    // forceNew が true の場合は必ず新しいセッションIDを生成
+    if (forceNew) {
+        const newSessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem(SESSION_STORAGE_KEY, newSessionId);
+        document.cookie = `sessionId=${newSessionId}; path=/`;
+        console.log("新しいセッションIDを生成:", newSessionId);
+        return newSessionId;
+    }
+
+    // 既存のセッションIDを取得
     let sessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
     
     if (!sessionId) {
-        // Cookieに既存のセッションIDがあるか確認
-        sessionId = getCookieValue('sessionId');
-        
-        if (!sessionId) {
-            // 新しいセッションIDを生成
-            sessionId = 'session-' + new Date().getTime() + '-' + Math.random().toString(36).substr(2, 9);
-        }
-        
-        // SessionStorageに保存
+        // 新しいセッションIDを生成
+        sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+        document.cookie = `sessionId=${sessionId}; path=/`;
         console.log("新しいセッションIDを生成:", sessionId);
     } else {
         console.log("既存のセッションIDを使用:", sessionId);
@@ -276,7 +279,9 @@ function resetChat() {
     console.log("チャットリセット実行");
     if (confirm("チャット履歴をリセットしてもよろしいですか？")) {
         chatContainer.innerHTML = "";
-        console.log("チャット履歴をリセットしました");
+        // 新しいセッションIDを生成
+        getOrCreateSessionId(true);
+        console.log("チャット履歴をリセットし、新しいセッションIDを生成しました");
     }
 }
 
@@ -338,6 +343,9 @@ async function submitSurvey(event) {
         questionInput.disabled = false;
         sendButton.disabled = false;
         
+        // 新しいセッションIDを生成
+        getOrCreateSessionId(true);
+        
         // 回答をリセット
         surveyAnswers = {
             satisfaction: 0,
@@ -359,7 +367,9 @@ async function submitSurvey(event) {
     }
 }
 
-// チャット履歴読み込み関数
+
+
+    // チャット履歴読み込み関数
 async function loadChatHistory() {
     const sessionId = getOrCreateSessionId();
     console.log("セッションIDを取得:", sessionId);
@@ -426,10 +436,25 @@ if (submitSurveyButton) {
     console.error("アンケート送信ボタンが見つかりません");
 }
 
-// ページロード時のイベントリスナー
+// ページロード時の処理
 window.addEventListener('load', () => {
     console.log("ページロード時の初期化を開始");
+    // 新しいタブで開いた場合は新しいセッションIDを生成
+    if (!document.hidden) {
+        getOrCreateSessionId(true);
+    }
     loadChatHistory();
+});
+
+// visibility変更時の処理を追加
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        // タブがアクティブになった時（リロードも含む）
+        console.log("タブがアクティブになりました");
+        getOrCreateSessionId(true);
+        chatContainer.innerHTML = ''; // チャット履歴をクリア
+        loadChatHistory();
+    }
 });
 
 // セッションストレージの変更を監視（別タブとの同期用）
