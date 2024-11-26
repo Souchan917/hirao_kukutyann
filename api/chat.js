@@ -1,6 +1,7 @@
 // api/chat.js
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
+import { getChatHistory } from '../libs/firebase.js';
 
 // くくちゃんの基本プロンプト
 const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククちゃん"として会話を行います。
@@ -26,18 +27,53 @@ const CLASSIFICATION_PROMPT = `以下のユーザーの質問を「相談」「�
 
 回答は「相談」「雑談」のどちらかの1単語のみを返してください。`;
 
+// チャット履歴を整形する関数
+async function formatChatHistory(sessionId) {
+    try {
+        const history = await getChatHistory(sessionId);
+        let formattedHistory = '';
+        
+        // 最新5件のチャットのみを使用
+        const recentChats = history
+            .filter(msg => msg.type === 'user' || msg.type === 'ai')
+            .slice(-10) // 5往復分なので10メッセージ
+            .map(msg => {
+                if (msg.type === 'user') {
+                    return `ユーザー: ${msg.content}`;
+                } else {
+                    return `ククちゃん: ${msg.content}`;
+                }
+            });
+
+        if (recentChats.length > 0) {
+            formattedHistory = '\n\n### 最近の会話履歴 ###\n' + recentChats.join('\n');
+        }
+
+        return formattedHistory;
+    } catch (error) {
+        console.error('チャット履歴の取得エラー:', error);
+        return '';
+    }
+}
+
 // 相談処理用の関数
-async function handleConsultation(userMessage, apiKey) {
+async function handleConsultation(userMessage, apiKey, sessionId) {
     console.log('\n=== 相談処理開始 ===');
     console.log('入力メッセージ:', userMessage);
 
+    // チャット履歴を取得
+    const chatHistory = await formatChatHistory(sessionId);
+    console.log('チャット履歴:', chatHistory);
+
     // 1. 意図分析
     console.log('\n[1] 意図分析開始');
-    const intentPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に含まれている意図を詳細に分析してください。
+    const intentPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問と過去の会話履歴に基づいて、質問の意図を詳細に分析してください。
     ユーザーが質問を通じてどのようなサポートやアドバイスを期待しているのかを具体的に説明し、その背景や目的についても考察してください。
     また、質問の背後にある感情や動機についても考え、それがどのようにユーザーの期待や要求に影響を与えているかを分析してください。
     最終的に、ユーザーがどのような返答や行動を求めているかを推測してください。
     この分析を通じて、ユーザーの質問の真の意図と、それに対する最も適切な応答を明確にすることを目指します。
+
+    ${chatHistory}
 
     ユーザーの質問: '${userMessage}'
     
@@ -63,7 +99,6 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`意図分析APIエラー: ${intentResponse.statusText}`);
     }
 
-    // 意図分析の結果をより見やすく出力
     const intentData = await intentResponse.json();
     const intentContent = intentData.choices[0].message.content.trim();
     console.log('\n=== 意図分析の生成結果 ===');
@@ -73,9 +108,11 @@ async function handleConsultation(userMessage, apiKey) {
 
     // 2. 追加質問の提案
     console.log('\n[2] 追加質問生成開始');
-    const followUpPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に対して以下を分析してください。
+    const followUpPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問と過去の会話履歴に基づいて分析を行ってください。
     ユーザーの質問に対して不足している環境や行動に関する情報を特定し、以下の点を踏まえつつ重要と判断される追加質問を2~3個提案してください。
     具体的に、ユーザーが提供していないが必要となる詳細な情報を特定し、それに基づいて質問を作成してください。
+
+    ${chatHistory}
 
     ユーザーの質問: '${userMessage}'
     意図の分析: '${intentContent}'
@@ -102,7 +139,6 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`追加質問生成APIエラー: ${followUpResponse.statusText}`);
     }
 
-    // 追加質問の結果をより見やすく出力
     const followUpData = await followUpResponse.json();
     const followUpContent = followUpData.choices[0].message.content.trim();
     console.log('\n=== 追加質問の生成結果 ===');
@@ -116,6 +152,8 @@ async function handleConsultation(userMessage, apiKey) {
 
     以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
     また、ユーザーが提供した情報に基づいて具体的なアドバイスを行い、必要な場合は追加の質問をしてください。
+
+    ${chatHistory}
 
     ユーザーの質問: '${userMessage}'
     意図の分析: '${intentContent}'
@@ -143,7 +181,6 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`最終回答生成APIエラー: ${finalResponse.statusText}`);
     }
 
-    // 最終回答の結果をより見やすく出力
     const finalData = await finalResponse.json();
     const finalContent = finalData.choices[0].message.content.trim();
     console.log('\n=== 最終回答の生成結果 ===');
@@ -156,16 +193,22 @@ async function handleConsultation(userMessage, apiKey) {
 }
 
 // 雑談処理用の関数
-async function handleChatting(userMessage, apiKey) {
+async function handleChatting(userMessage, apiKey, sessionId) {
     console.log('\n=== 雑談処理開始 ===');
     console.log('入力メッセージ:', userMessage);
 
+    // チャット履歴を取得
+    const chatHistory = await formatChatHistory(sessionId);
+    console.log('チャット履歴:', chatHistory);
+
     // 1. 追加質問の提案
     console.log('\n[1] 追加質問生成開始');
-    const followUpPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に含まれている意図を詳細に分析してください。
+    const followUpPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問と過去の会話履歴に基づいて分析を行ってください。
     ユーザーの質問に対して不足している環境や行動に関する情報を特定し、以下の点を踏まえつつ重要と判断される追加質問を2~3個提案してください。
     質問の背景理解：質問の主な内容と関連する問題点を把握します。
     不足情報の特定：環境要因、行動パターン、観測可能な変数など、欠けている重要情報を特定します。
+
+    ${chatHistory}
 
     ユーザーの質問: '${userMessage}'
 
@@ -201,6 +244,8 @@ async function handleChatting(userMessage, apiKey) {
 
     以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
     また、話を広げるような会話を必ず心がけてください。
+
+    ${chatHistory}
 
     ユーザーの質問: '${userMessage}'
     追加の質問提案: ${followUpContent}
@@ -242,17 +287,17 @@ export default async function handler(req, res) {
 
     const { userMessage } = req.body;
     const apiKey = process.env.OPENAI_API_KEY;
+    // リクエストヘッダーからセッションIDを取得
+    const sessionId = req.headers['x-session-id'] || req.cookies.sessionId;
 
     if (!apiKey) {
         console.error('OPENAI_API_KEYが設定されていません');
         return res.status(500).json({ error: 'サーバーの設定エラー: APIキーが設定されていません。' });
     }
 
-    // セッションIDの管理
-    let sessionId = req.cookies.sessionId;
     if (!sessionId) {
-        sessionId = uuidv4(); // 新しいセッションIDを生成
-        res.setHeader('Set-Cookie', `sessionId=${sessionId}; HttpOnly; Path=/`);
+        console.error('セッションIDが見つかりません');
+        return res.status(400).json({ error: 'セッションIDが必要です。' });
     }
 
     try {
