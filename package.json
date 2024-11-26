@@ -1,7 +1,6 @@
 {
   "name": "hirao-kukutyann",
   "version": "1.0.0",
-  "type": "module",
   "dependencies": {
     "firebase": "^11.0.2",
     "node-fetch": "^3.3.2",

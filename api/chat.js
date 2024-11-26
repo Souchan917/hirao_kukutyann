@@ -1,7 +1,7 @@
 // api/chat.js
-import fetch from 'node-fetch';
-import { v4 as uuidv4 } from 'uuid';
-import { getChatHistory } from '../libs/firebase.js';
+const fetch = require('node-fetch');
+const { v4: uuidv4 } = require('uuid');
+const { getChatHistory } = require('../libs/firebase.js');
 
 // くくちゃんの基本プロンプト
 const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククちゃん"として会話を行います。
