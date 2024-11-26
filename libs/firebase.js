@@ -1,16 +1,16 @@
 // libs/firebase.js
 
-// CommonJSスタイルのインポートに変更
-const { initializeApp } = require('firebase/app');
-const { 
+// Firebaseのインポート - whereを追加
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { 
     getFirestore, 
     collection, 
     addDoc,
     query, 
-    where,
+    where, // whereを追加
     orderBy,
     getDocs 
-} = require('firebase/firestore');
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // Firebase設定
 const firebaseConfig = {
@@ -35,11 +35,12 @@ console.log('Firebaseの初期化が完了しました');
  * @param {string} type - メッセージの種類 ("user", "ai", "rating", "survey")
  * @param {string} sessionId - セッションID
  */
-async function saveMessage(content, type, sessionId) {
+export async function saveMessage(content, type, sessionId) {
     console.log('メッセージを保存:', { content, type, sessionId });
     
     if (!sessionId) {
         console.error('セッションIDが指定されていません');
+        // エラーをスローする代わりにデフォルトのセッションIDを生成
         sessionId = 'default-session-' + new Date().getTime();
         console.log('デフォルトのセッションIDを生成しました:', sessionId);
     }
@@ -68,7 +69,7 @@ async function saveMessage(content, type, sessionId) {
  * @param {string} sessionId - セッションID
  * @returns {Promise<Array>} メッセージの配列
  */
-async function getChatHistory(sessionId) {
+export async function getChatHistory(sessionId) {
     console.log('チャット履歴を取得:', sessionId);
 
     if (!sessionId) {
@@ -105,13 +106,10 @@ async function getChatHistory(sessionId) {
 
     } catch (error) {
         console.error('チャット履歴の取得中にエラーが発生:', error);
+        // エラーが発生しても空の配列を返す
         return [];
     }
 }
 
-// エクスポート
-module.exports = {
-    db,
-    saveMessage,
-    getChatHistory
-};
+// Firestoreのインスタンスをエクスポート
+export { db };
