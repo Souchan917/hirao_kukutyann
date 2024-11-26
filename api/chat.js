@@ -1,6 +1,7 @@
 // api/chat.js
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
+import { getChatHistory } from '../libs/firebase.js'; // Firebaseからチャット履歴を取得するための関数をインポート
 
 // くくちゃんの基本プロンプト
 const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククちゃん"として会話を行います。
@@ -26,10 +27,23 @@ const CLASSIFICATION_PROMPT = `以下のユーザーの質問を「相談」「�
 
 回答は「相談」「雑談」のどちらかの1単語のみを返してください。`;
 
+// チャット履歴をプロンプトに変換する関数
+function formatChatHistory(history) {
+    return history
+        .slice(-10) // 最大5往復分（ユーザー5回＋AI5回）を取得
+        .map(msg => `${msg.type === 'user' ? 'ユーザー' : 'ククちゃん'}: ${msg.content}`)
+        .join('\n');
+}
+
 // 相談処理用の関数
-async function handleConsultation(userMessage, apiKey) {
+async function handleConsultation(userMessage, apiKey, sessionId) {
     console.log('\n=== 相談処理開始 ===');
     console.log('入力メッセージ:', userMessage);
+
+    // チャット履歴を取得
+    const history = await getChatHistory(sessionId);
+    const chatHistory = formatChatHistory(history);
+    console.log('チャット履歴:', chatHistory);
 
     // 1. 意図分析
     console.log('\n[1] 意図分析開始');
@@ -38,6 +52,9 @@ async function handleConsultation(userMessage, apiKey) {
     また、質問の背後にある感情や動機についても考え、それがどのようにユーザーの期待や要求に影響を与えているかを分析してください。
     最終的に、ユーザーがどのような返答や行動を求めているかを推測してください。
     この分析を通じて、ユーザーの質問の真の意図と、それに対する最も適切な応答を明確にすることを目指します。
+
+    これまでの会話:
+    ${chatHistory}
 
     ユーザーの質問: '${userMessage}'
     
@@ -63,7 +80,6 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`意図分析APIエラー: ${intentResponse.statusText}`);
     }
 
-    // 意図分析の結果をより見やすく出力
     const intentData = await intentResponse.json();
     const intentContent = intentData.choices[0].message.content.trim();
     console.log('\n=== 意図分析の生成結果 ===');
@@ -76,6 +92,9 @@ async function handleConsultation(userMessage, apiKey) {
     const followUpPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に対して以下を分析してください。
     ユーザーの質問に対して不足している環境や行動に関する情報を特定し、以下の点を踏まえつつ重要と判断される追加質問を2~3個提案してください。
     具体的に、ユーザーが提供していないが必要となる詳細な情報を特定し、それに基づいて質問を作成してください。
+
+    これまでの会話:
+    ${chatHistory}
 
     ユーザーの質問: '${userMessage}'
     意図の分析: '${intentContent}'
@@ -102,7 +121,6 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`追加質問生成APIエラー: ${followUpResponse.statusText}`);
     }
 
-    // 追加質問の結果をより見やすく出力
     const followUpData = await followUpResponse.json();
     const followUpContent = followUpData.choices[0].message.content.trim();
     console.log('\n=== 追加質問の生成結果 ===');
@@ -113,6 +131,9 @@ async function handleConsultation(userMessage, apiKey) {
     // 3. 最終的な回答生成
     console.log('\n[3] 最終回答生成開始');
     const finalPrompt = `${KUKU_PROFILE}
+
+    これまでの会話:
+    ${chatHistory}
 
     以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
     また、ユーザーが提供した情報に基づいて具体的なアドバイスを行い、必要な場合は追加の質問をしてください。
@@ -143,7 +164,6 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`最終回答生成APIエラー: ${finalResponse.statusText}`);
     }
 
-    // 最終回答の結果をより見やすく出力
     const finalData = await finalResponse.json();
     const finalContent = finalData.choices[0].message.content.trim();
     console.log('\n=== 最終回答の生成結果 ===');
@@ -156,9 +176,14 @@ async function handleConsultation(userMessage, apiKey) {
 }
 
 // 雑談処理用の関数
-async function handleChatting(userMessage, apiKey) {
+async function handleChatting(userMessage, apiKey, sessionId) {
     console.log('\n=== 雑談処理開始 ===');
     console.log('入力メッセージ:', userMessage);
+
+    // チャット履歴を取得
+    const history = await getChatHistory(sessionId);
+    const chatHistory = formatChatHistory(history);
+    console.log('チャット履歴:', chatHistory);
 
     // 1. 追加質問の提案
     console.log('\n[1] 追加質問生成開始');
@@ -166,6 +191,9 @@ async function handleChatting(userMessage, apiKey) {
     ユーザーの質問に対して不足している環境や行動に関する情報を特定し、以下の点を踏まえつつ重要と判断される追加質問を2~3個提案してください。
     質問の背景理解：質問の主な内容と関連する問題点を把握します。
     不足情報の特定：環境要因、行動パターン、観測可能な変数など、欠けている重要情報を特定します。
+
+    これまでの会話:
+    ${chatHistory}
 
     ユーザーの質問: '${userMessage}'
 
@@ -198,6 +226,9 @@ async function handleChatting(userMessage, apiKey) {
     // 2. 最終的な回答生成
     console.log('\n[2] 最終回答生成開始');
     const responsePrompt = `${KUKU_PROFILE}
+
+    これまでの会話:
+    ${chatHistory}
 
     以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
     また、話を広げるような会話を必ず心がけてください。

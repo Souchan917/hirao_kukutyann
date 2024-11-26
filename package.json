@@ -1,12 +1,12 @@
 {
   "name": "hirao-kukutyann",
   "version": "1.0.0",
+  "type": "module",
   "dependencies": {
     "firebase": "^11.0.2",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^3.3.2",
     "firebase-admin": "^11.11.0",
-    "@firebase/firestore": "^4.4.0",
-    "uuid": "^9.0.0"
+    "@firebase/firestore": "^4.4.0"
   },
   "devDependencies": {
     "firebase-tools": "^13.0.2"
