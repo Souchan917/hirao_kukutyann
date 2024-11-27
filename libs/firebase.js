@@ -1,41 +1,75 @@
 // libs/firebase.js
 
-// クライアントサイドでのFirebaseの読み込みを確認
-if (typeof window !== 'undefined' && typeof window.firebase === 'undefined') {
-    throw new Error('Firebaseが読み込まれていません。index.htmlにFirebaseのCDNスクリプトを追加してください。');
-}
-
-// Firebase設定
-const firebaseConfig = {
-    apiKey: "AIzxSyACzVcf8eNzcu698PdbKKRVcbStH821avc",
-    authDomain: "kukutyan-f48ae.firebaseapp.com",
-    projectId: "kukutyan-f48ae",
-    storageBucket: "kukutyan-f48ae.firebasestorage.app",
-    messagingSenderId: "894594120998",
-    appId: "1:894594120998:web:9160722e1d27e98afbd5e7",
-    measurementId: "G-8F3DC6V2M7"
-};
-
+// 環境チェックとFirebase初期化
 let db;
+let firebaseInstance;
 
-// Firebaseの初期化
-try {
-    console.log('Firebaseの初期化を開始...');
-    // アプリが既に初期化されているかチェック
-    if (!firebase.apps?.length) {
-        firebase.initializeApp(firebaseConfig);
+if (typeof window !== 'undefined') {
+    // ブラウザ環境
+    console.log('ブラウザ環境でFirebaseを初期化します');
+    
+    // Firebaseの設定
+    const firebaseConfig = {
+        apiKey: "AIzxSyACzVcf8eNzcu698PdbKKRVcbStH821avc",
+        authDomain: "kukutyan-f48ae.firebaseapp.com",
+        projectId: "kukutyan-f48ae",
+        storageBucket: "kukutyan-f48ae.firebasestorage.app",
+        messagingSenderId: "894594120998",
+        appId: "1:894594120998:web:9160722e1d27e98afbd5e7",
+        measurementId: "G-8F3DC6V2M7"
+    };
+
+    try {
+        console.log('Firebaseの初期化を開始...');
+        // window.firebase が定義されているか確認
+        if (typeof window.firebase !== 'undefined') {
+            if (!window.firebase.apps.length) {
+                firebaseInstance = window.firebase.initializeApp(firebaseConfig);
+            } else {
+                firebaseInstance = window.firebase.app();
+            }
+            db = firebaseInstance.firestore();
+            console.log('Firebaseの初期化が完了しました');
+        } else {
+            console.error('Firebase SDKが読み込まれていません');
+        }
+    } catch (error) {
+        console.error('Firebaseの初期化中にエラーが発生:', error);
     }
-    db = firebase.firestore();
-    console.log('Firebaseの初期化が完了しました');
-} catch (error) {
-    console.error('Firebaseの初期化中にエラーが発生:', error);
-    throw error;
+} else {
+    // サーバー環境（Node.js）
+    console.log('サーバー環境を検出しました');
+    try {
+        const { initializeApp } = require('firebase/app');
+        const { getFirestore } = require('firebase/firestore');
+        
+        const firebaseConfig = {
+            apiKey: "AIzxSyACzVcf8eNzcu698PdbKKRVcbStH821avc",
+            authDomain: "kukutyan-f48ae.firebaseapp.com",
+            projectId: "kukutyan-f48ae",
+            storageBucket: "kukutyan-f48ae.firebasestorage.app",
+            messagingSenderId: "894594120998",
+            appId: "1:894594120998:web:9160722e1d27e98afbd5e7",
+            measurementId: "G-8F3DC6V2M7"
+        };
+
+        firebaseInstance = initializeApp(firebaseConfig);
+        db = getFirestore(firebaseInstance);
+        console.log('サーバー側Firebaseの初期化が完了しました');
+    } catch (error) {
+        console.error('サーバー側Firebaseの初期化中にエラーが発生:', error);
+    }
 }
 
 /**
  * メッセージを保存する関数
  */
 export async function saveMessage(content, type, sessionId) {
+    if (!db) {
+        console.error('Firestore が初期化されていません');
+        return null;
+    }
+
     console.log('メッセージを保存:', { content, type, sessionId });
     
     if (!sessionId) {
@@ -45,14 +79,17 @@ export async function saveMessage(content, type, sessionId) {
     }
 
     try {
-        const docRef = await db.collection("chatLogs").add({
+        const chatCollection = db.collection("chatLogs");
+        const messageData = {
             content: content,
             type: type,
             sessionId: sessionId,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
+            timestamp: new Date()
+        };
+
+        const docRef = await chatCollection.add(messageData);
         console.log('メッセージを保存しました。Document ID:', docRef.id);
+        
         return docRef.id;
     } catch (error) {
         console.error('メッセージの保存中にエラーが発生:', error);
@@ -64,6 +101,11 @@ export async function saveMessage(content, type, sessionId) {
  * チャット履歴を取得する関数
  */
 export async function getChatHistory(sessionId) {
+    if (!db) {
+        console.error('Firestore が初期化されていません');
+        return [];
+    }
+
     console.log('チャット履歴を取得:', sessionId);
 
     if (!sessionId) {
@@ -84,7 +126,6 @@ export async function getChatHistory(sessionId) {
             });
         });
 
-        // タイムスタンプでソート
         messages.sort((a, b) => {
             return (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0);
         });
