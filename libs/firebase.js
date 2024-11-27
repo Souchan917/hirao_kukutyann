@@ -1,16 +1,11 @@
 // libs/firebase.js
-import { initializeApp } from 'firebase/app';
-import { 
-    getFirestore, 
-    collection, 
-    addDoc,
-    query, 
-    where,
-    orderBy,
-    getDocs 
-} from 'firebase/firestore';
 
-// Firebase設定
+// クライアントサイドでのFirebaseの読み込みを確認
+if (typeof firebase === 'undefined') {
+    throw new Error('Firebaseが読み込まれていません。index.htmlにFirebaseのCDNスクリプトを追加してください。');
+}
+
+// Firebaseの設定
 const firebaseConfig = {
     apiKey: "AIzxSyACzVcf8eNzcu698PdbKKRVcbStH821avc",
     authDomain: "kukutyan-f48ae.firebaseapp.com",
@@ -21,17 +16,24 @@ const firebaseConfig = {
     measurementId: "G-8F3DC6V2M7"
 };
 
+let db;
+
 // Firebaseの初期化
-console.log('Firebaseの初期化を開始...');
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-console.log('Firebaseの初期化が完了しました');
+try {
+    console.log('Firebaseの初期化を開始...');
+    // アプリが既に初期化されているかチェック
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    db = firebase.firestore();
+    console.log('Firebaseの初期化が完了しました');
+} catch (error) {
+    console.error('Firebaseの初期化中にエラーが発生:', error);
+    throw error;
+}
 
 /**
  * メッセージを保存する関数
- * @param {string} content - メッセージの内容
- * @param {string} type - メッセージの種類 ("user", "ai", "rating", "survey")
- * @param {string} sessionId - セッションID
  */
 export async function saveMessage(content, type, sessionId) {
     console.log('メッセージを保存:', { content, type, sessionId });
@@ -43,17 +45,14 @@ export async function saveMessage(content, type, sessionId) {
     }
 
     try {
-        const chatCollection = collection(db, "chatLogs");
-        const messageData = {
+        const docRef = await db.collection("chatLogs").add({
             content: content,
             type: type,
             sessionId: sessionId,
-            timestamp: new Date()
-        };
-
-        const docRef = await addDoc(chatCollection, messageData);
-        console.log('メッセージを保存しました。Document ID:', docRef.id);
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
         
+        console.log('メッセージを保存しました。Document ID:', docRef.id);
         return docRef.id;
     } catch (error) {
         console.error('メッセージの保存中にエラーが発生:', error);
@@ -63,8 +62,6 @@ export async function saveMessage(content, type, sessionId) {
 
 /**
  * チャット履歴を取得する関数
- * @param {string} sessionId - セッションID
- * @returns {Promise<Array>} メッセージの配列
  */
 export async function getChatHistory(sessionId) {
     console.log('チャット履歴を取得:', sessionId);
@@ -75,38 +72,29 @@ export async function getChatHistory(sessionId) {
     }
 
     try {
-        // orderByを除去してシンプルなクエリに
-        const chatQuery = query(
-            collection(db, "chatLogs"),
-            where("sessionId", "==", sessionId)
-        );
+        const snapshot = await db.collection("chatLogs")
+            .where("sessionId", "==", sessionId)
+            .get();
 
-        const querySnapshot = await getDocs(chatQuery);
         const messages = [];
-        
-        querySnapshot.forEach((doc) => {
-            let messageData = doc.data();
+        snapshot.forEach(doc => {
             messages.push({
                 id: doc.id,
-                ...messageData
+                ...doc.data()
             });
         });
 
-        // JavaScriptでソート
+        // タイムスタンプでソート
         messages.sort((a, b) => {
-            const timeA = a.timestamp?.toMillis?.() ?? new Date(a.timestamp).getTime();
-            const timeB = b.timestamp?.toMillis?.() ?? new Date(b.timestamp).getTime();
-            return timeA - timeB;
+            return (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0);
         });
 
         console.log(`${messages.length}件のメッセージを取得しました`);
         return messages;
-
     } catch (error) {
         console.error('チャット履歴の取得中にエラーが発生:', error);
         return [];
     }
 }
 
-// Firestoreのインスタンスをエクスポート
 export { db };
