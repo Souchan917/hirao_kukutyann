@@ -1,16 +1,14 @@
 // libs/firebase.js
-
-// Firebaseのインポート - whereを追加
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { initializeApp } from 'firebase/app';
 import { 
     getFirestore, 
     collection, 
     addDoc,
     query, 
-    where, // whereを追加
+    where,
     orderBy,
     getDocs 
-} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+} from 'firebase/firestore';
 
 // Firebase設定
 const firebaseConfig = {
@@ -40,8 +38,7 @@ export async function saveMessage(content, type, sessionId) {
     
     if (!sessionId) {
         console.error('セッションIDが指定されていません');
-        // エラーをスローする代わりにデフォルトのセッションIDを生成
-        sessionId = 'default-session-' + new Date().getTime();
+        sessionId = 'default-session-' + Date.now();
         console.log('デフォルトのセッションIDを生成しました:', sessionId);
     }
 
@@ -74,11 +71,11 @@ export async function getChatHistory(sessionId) {
 
     if (!sessionId) {
         console.error('セッションIDが指定されていません');
-        return []; // 空の配列を返す
+        return [];
     }
 
     try {
-        // orderByを削除し、シンプルなクエリにする
+        // orderByを除去してシンプルなクエリに
         const chatQuery = query(
             collection(db, "chatLogs"),
             where("sessionId", "==", sessionId)
@@ -95,10 +92,10 @@ export async function getChatHistory(sessionId) {
             });
         });
 
-        // JavaScriptでソートする
+        // JavaScriptでソート
         messages.sort((a, b) => {
-            const timeA = a.timestamp instanceof Date ? a.timestamp : new Date(a.timestamp);
-            const timeB = b.timestamp instanceof Date ? b.timestamp : new Date(b.timestamp);
+            const timeA = a.timestamp?.toMillis?.() ?? new Date(a.timestamp).getTime();
+            const timeB = b.timestamp?.toMillis?.() ?? new Date(b.timestamp).getTime();
             return timeA - timeB;
         });
 
@@ -110,5 +107,6 @@ export async function getChatHistory(sessionId) {
         return [];
     }
 }
+
 // Firestoreのインスタンスをエクスポート
 export { db };
