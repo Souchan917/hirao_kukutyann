@@ -1,11 +1,11 @@
 // libs/firebase.js
 
 // クライアントサイドでのFirebaseの読み込みを確認
-if (typeof firebase === 'undefined') {
+if (typeof window !== 'undefined' && typeof window.firebase === 'undefined') {
     throw new Error('Firebaseが読み込まれていません。index.htmlにFirebaseのCDNスクリプトを追加してください。');
 }
 
-// Firebaseの設定
+// Firebase設定
 const firebaseConfig = {
     apiKey: "AIzxSyACzVcf8eNzcu698PdbKKRVcbStH821avc",
     authDomain: "kukutyan-f48ae.firebaseapp.com",
@@ -22,7 +22,7 @@ let db;
 try {
     console.log('Firebaseの初期化を開始...');
     // アプリが既に初期化されているかチェック
-    if (!firebase.apps.length) {
+    if (!firebase.apps?.length) {
         firebase.initializeApp(firebaseConfig);
     }
     db = firebase.firestore();
