@@ -78,11 +78,10 @@ export async function getChatHistory(sessionId) {
     }
 
     try {
-        // 特定のセッションIDに対応するメッセージを時系列で取得
+        // orderByを削除し、シンプルなクエリにする
         const chatQuery = query(
             collection(db, "chatLogs"),
-            where("sessionId", "==", sessionId),
-            orderBy("timestamp", "asc")
+            where("sessionId", "==", sessionId)
         );
 
         const querySnapshot = await getDocs(chatQuery);
@@ -90,15 +89,17 @@ export async function getChatHistory(sessionId) {
         
         querySnapshot.forEach((doc) => {
             let messageData = doc.data();
-            // timestampがFirestore Timestampオブジェクトの場合の処理
-            if (messageData.timestamp && typeof messageData.timestamp.toDate === 'function') {
-                messageData.timestamp = messageData.timestamp.toDate();
-            }
-            
             messages.push({
                 id: doc.id,
                 ...messageData
             });
+        });
+
+        // JavaScriptでソートする
+        messages.sort((a, b) => {
+            const timeA = a.timestamp instanceof Date ? a.timestamp : new Date(a.timestamp);
+            const timeB = b.timestamp instanceof Date ? b.timestamp : new Date(b.timestamp);
+            return timeA - timeB;
         });
 
         console.log(`${messages.length}件のメッセージを取得しました`);
@@ -106,10 +107,8 @@ export async function getChatHistory(sessionId) {
 
     } catch (error) {
         console.error('チャット履歴の取得中にエラーが発生:', error);
-        // エラーが発生しても空の配列を返す
         return [];
     }
 }
-
 // Firestoreのインスタンスをエクスポート
 export { db };

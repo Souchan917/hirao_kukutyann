@@ -30,8 +30,14 @@ const CLASSIFICATION_PROMPT = `以下のユーザーの質問を「相談」「�
 
 // チャット履歴をプロンプトに変換する関数
 function formatChatHistory(history) {
-    return history
-        .slice(-10) // 最大5往復分（ユーザー5回＋AI5回）を取得
+    if (!history || history.length === 0) return '';  // 履歴がない場合は空文字を返す
+    
+    // 最新の10件（5往復分）のみを取得
+    const recentHistory = history
+        .filter(msg => msg.type === 'user' || msg.type === 'ai')  // rating と survey を除外
+        .slice(-10);
+    
+    return recentHistory
         .map(msg => `${msg.type === 'user' ? 'ユーザー' : 'ククちゃん'}: ${msg.content}`)
         .join('\n');
 }
