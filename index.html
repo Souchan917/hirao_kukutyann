@@ -146,24 +146,10 @@
             margin-top: 40px;
         }
 
-        /* アンケートの btn-group クラスのみ修正 */
         .btn-group {
-            display: flex !important;
-            justify-content: space-between !important;
-            width: 100%;
-            overflow: hidden;
-            gap: 2px;
-        }
-
-        .btn-group strong {
-            flex: 1;
-            min-width: 0;
-            padding: 8px 2px;
-            font-size: clamp(0.6rem, 2vw, 0.9rem);
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            min-width: 100%;
+            overflow-x: auto;
+            flex-wrap: nowrap !important;
         }
 
         .btn-group .btn {
@@ -204,10 +190,11 @@
             color: white;
         }
 
+        /* スマートフォン向けの調整 */
         @media (max-width: 576px) {
-            .btn-group strong {
-                padding: 6px 1px;
-                font-size: 0.7rem;
+            .rating-buttons label {
+                font-size: 0.8rem;
+                padding: 4px 2px;
             }
         }
 
