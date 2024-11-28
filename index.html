@@ -147,22 +147,64 @@
         }
 
         .btn-group {
-            flex-wrap: nowrap;
-            margin: 15px 0;
+            min-width: 100%;
+            overflow-x: auto;
+            flex-wrap: nowrap !important;
         }
 
         .btn-group .btn {
+            white-space: nowrap;
+            min-width: max-content;
             flex: 1;
-            white-space: normal;
-            padding: 10px;
+        }
+
+        .btn-check:checked + .btn-outline-primary {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+
+        .rating-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .rating-buttons label {
+            flex: 1;
+            text-align: center;
             font-size: 0.9rem;
-            line-height: 1.2;
-            min-height: 80px;
+            padding: 8px 4px;
+            white-space: normal;
+            height: auto;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
+            min-height: 80px;
         }
+
+        .btn-check:checked + .btn-outline-primary {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        /* スマートフォン向けの調整 */
+        @media (max-width: 576px) {
+            .rating-buttons label {
+                font-size: 0.8rem;
+                padding: 4px 2px;
+            }
+        }
+
+        /* レスポンシブ対応 */
+        .survey-item {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        
 
         /* フッター */
         footer {
@@ -191,7 +233,7 @@
     <!-- 同意画面 -->
     <div id="consent-overlay">
         <div id="consent-box">
-            <h2 class="mb-4">研究用Webサイト - 利用規約と同意書1</h2>
+            <h2 class="mb-4">研究用Webサイト - 利用規約と同意書5</h2>
             <p>このサイトは研究目的で運営されています。以下の内容をご確認いただき、同意いただける場合のみご利用ください。</p>
             <ul class="mb-4">
                 <li>本サイトは子育てに関するAIによるサポートの研究を目的としています。</li>
@@ -253,81 +295,97 @@
 
             <!-- アンケートフォーム -->
             <div id="survey-form" class="mt-5" style="display: none;">
-                <!-- アンケートの内容は前と同じ -->
                 <div class="card">
                     <div class="card-body">
                         <h3 class="card-title text-center mb-4">最終アンケート</h3>
                         
-                        <div class="mb-4">
-                            <p class="fw-bold">1. 今回の一連の会話に対しての満足度を教えてください：</p>
-                            <div class="btn-group d-flex" role="group" aria-label="満足度">
-                                <input type="radio" class="btn-check" name="overall-satisfaction" id="overall1" value="1" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="overall1"><strong>1</strong>とても不満</label>
-                                <input type="radio" class="btn-check" name="overall-satisfaction" id="overall2" value="2" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="overall2"><strong>2</strong>不満</label>
-                                <input type="radio" class="btn-check" name="overall-satisfaction" id="overall3" value="3" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="overall3"><strong>3</strong>普通</label>
-                                <input type="radio" class="btn-check" name="overall-satisfaction" id="overall4" value="4" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="overall4"><strong>4</strong>満足</label>
-                                <input type="radio" class="btn-check" name="overall-satisfaction" id="overall5" value="5" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="overall5"><strong>5</strong>とても満足</label>
+                        <div class="survey-item mb-4">
+                            <p class="mb-2">1. 今回の一連の会話に対しての満足度を教えてください：</p>
+                            <div class="rating-buttons" role="group" aria-label="満足度">
+                                <input type="radio" class="btn-check" name="satisfaction" id="satisfaction1" value="1">
+                                <label class="btn btn-outline-primary" for="satisfaction1">1<br>とても不満</label>
+                                
+                                <input type="radio" class="btn-check" name="satisfaction" id="satisfaction2" value="2">
+                                <label class="btn btn-outline-primary" for="satisfaction2">2<br>不満</label>
+                                
+                                <input type="radio" class="btn-check" name="satisfaction" id="satisfaction3" value="3">
+                                <label class="btn btn-outline-primary" for="satisfaction3">3<br>普通</label>
+                                
+                                <input type="radio" class="btn-check" name="satisfaction" id="satisfaction4" value="4">
+                                <label class="btn btn-outline-primary" for="satisfaction4">4<br>満足</label>
+                                
+                                <input type="radio" class="btn-check" name="satisfaction" id="satisfaction5" value="5">
+                                <label class="btn btn-outline-primary" for="satisfaction5">5<br>とても満足</label>
                             </div>
                         </div>
-                        
-                        <div class="mb-4">
-                            <p class="fw-bold">2. あなたに合った回答ができていましたか：</p>
-                            <div class="btn-group d-flex" role="group" aria-label="個別化された回答">
-                                <input type="radio" class="btn-check" name="personalized-response" id="personalized1" value="1" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="personalized1"><strong>1</strong>まったくできていなかった</label>
-                                <input type="radio" class="btn-check" name="personalized-response" id="personalized2" value="2" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="personalized2"><strong>2</strong>あまりできていなかった</label>
-                                <input type="radio" class="btn-check" name="personalized-response" id="personalized3" value="3" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="personalized3"><strong>3</strong>普通</label>
-                                <input type="radio" class="btn-check" name="personalized-response" id="personalized4" value="4" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="personalized4"><strong>4</strong>よくできていた</label>
-                                <input type="radio" class="btn-check" name="personalized-response" id="personalized5" value="5" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="personalized5"><strong>5</strong>とてもよくできていた</label>
+            
+                        <div class="survey-item mb-4">
+                            <p class="mb-2">2. あなたに合った回答ができていましたか：</p>
+                            <div class="rating-buttons" role="group" aria-label="個別化された回答">
+                                <input type="radio" class="btn-check" name="personalization" id="personalization1" value="1">
+                                <label class="btn btn-outline-primary" for="personalization1">1<br>まったく<br>できていない</label>
+                                
+                                <input type="radio" class="btn-check" name="personalization" id="personalization2" value="2">
+                                <label class="btn btn-outline-primary" for="personalization2">2<br>あまり<br>できていない</label>
+                                
+                                <input type="radio" class="btn-check" name="personalization" id="personalization3" value="3">
+                                <label class="btn btn-outline-primary" for="personalization3">3<br>普通</label>
+                                
+                                <input type="radio" class="btn-check" name="personalization" id="personalization4" value="4">
+                                <label class="btn btn-outline-primary" for="personalization4">4<br>よく<br>できていた</label>
+                                
+                                <input type="radio" class="btn-check" name="personalization" id="personalization5" value="5">
+                                <label class="btn btn-outline-primary" for="personalization5">5<br>とても<br>よくできた</label>
                             </div>
                         </div>
-                        
-                        <div class="mb-4">
-                            <p class="fw-bold">3. 従来のくくちゃんに比べて、新しいくくちゃんはどうでしたか：</p>
-                            <div class="btn-group d-flex" role="group" aria-label="比較">
-                                <input type="radio" class="btn-check" name="comparison" id="comparison1" value="1" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="comparison1"><strong>1</strong>従来の方がかなり良い</label>
-                                <input type="radio" class="btn-check" name="comparison" id="comparison2" value="2" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="comparison2"><strong>2</strong>従来の方が少し良い</label>
-                                <input type="radio" class="btn-check" name="comparison" id="comparison3" value="3" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="comparison3"><strong>3</strong>どちらも同じくらい</label>
-                                <input type="radio" class="btn-check" name="comparison" id="comparison4" value="4" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="comparison4"><strong>4</strong>新しい方が少し良い</label>
-                                <input type="radio" class="btn-check" name="comparison" id="comparison5" value="5" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="comparison5"><strong>5</strong>新しい方がかなり良い</label>
+            
+                        <div class="survey-item mb-4">
+                            <p class="mb-2">3. 従来のくくちゃんに比べて、新しいくくちゃんはどうでしたか：</p>
+                            <div class="rating-buttons" role="group" aria-label="比較">
+                                <input type="radio" class="btn-check" name="comparison" id="comparison1" value="1">
+                                <label class="btn btn-outline-primary" for="comparison1">1<br>従来が<br>かなり良い</label>
+                                
+                                <input type="radio" class="btn-check" name="comparison" id="comparison2" value="2">
+                                <label class="btn btn-outline-primary" for="comparison2">2<br>従来が<br>少し良い</label>
+                                
+                                <input type="radio" class="btn-check" name="comparison" id="comparison3" value="3">
+                                <label class="btn btn-outline-primary" for="comparison3">3<br>同じ<br>くらい</label>
+                                
+                                <input type="radio" class="btn-check" name="comparison" id="comparison4" value="4">
+                                <label class="btn btn-outline-primary" for="comparison4">4<br>新しいが<br>少し良い</label>
+                                
+                                <input type="radio" class="btn-check" name="comparison" id="comparison5" value="5">
+                                <label class="btn btn-outline-primary" for="comparison5">5<br>新しいが<br>かなり良い</label>
                             </div>
                         </div>
-                        
-                        <div class="mb-4">
-                            <p class="fw-bold">4. あなたの質問の意図に沿って返答されていましたか：</p>
-                            <div class="btn-group d-flex" role="group" aria-label="意図の理解">
-                                <input type="radio" class="btn-check" name="intent-understanding" id="intent1" value="1" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="intent1"><strong>1</strong>まったく沿っていなかった</label>
-                                <input type="radio" class="btn-check" name="intent-understanding" id="intent2" value="2" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="intent2"><strong>2</strong>あまり沿っていなかった</label>
-                                <input type="radio" class="btn-check" name="intent-understanding" id="intent3" value="3" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="intent3"><strong>3</strong>普通</label>
-                                <input type="radio" class="btn-check" name="intent-understanding" id="intent4" value="4" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="intent4"><strong>4</strong>よく沿っていた</label>
-                                <input type="radio" class="btn-check" name="intent-understanding" id="intent5" value="5" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="intent5"><strong>5</strong>非常によく沿っていた</label>
+            
+                        <div class="survey-item mb-4">
+                            <p class="mb-2">4. あなたの質問の意図に沿って返答されていましたか：</p>
+                            <div class="rating-buttons" role="group" aria-label="意図の理解">
+                                <input type="radio" class="btn-check" name="intention" id="intention1" value="1">
+                                <label class="btn btn-outline-primary" for="intention1">1<br>まったく<br>沿っていない</label>
+                                
+                                <input type="radio" class="btn-check" name="intention" id="intention2" value="2">
+                                <label class="btn btn-outline-primary" for="intention2">2<br>あまり<br>沿っていない</label>
+                                
+                                <input type="radio" class="btn-check" name="intention" id="intention3" value="3">
+                                <label class="btn btn-outline-primary" for="intention3">3<br>普通</label>
+                                
+                                <input type="radio" class="btn-check" name="intention" id="intention4" value="4">
+                                <label class="btn btn-outline-primary" for="intention4">4<br>よく<br>沿っていた</label>
+                                
+                                <input type="radio" class="btn-check" name="intention" id="intention5" value="5">
+                                <label class="btn btn-outline-primary" for="intention5">5<br>非常に<br>沿っていた</label>
                             </div>
                         </div>
-
+            
                         <div class="text-center">
-                            <button class="btn btn-primary btn-lg" onclick="submitSurvey()">アンケートを送信</button>
+                            <button id="submitSurvey" class="btn btn-primary">アンケートを送信</button>
                         </div>
                     </div>
+                </div>
             </div>
-        </div>
+            
 
         <!-- フッター -->
         <footer>
@@ -341,7 +399,11 @@
     <script type="module" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
     
-    <!-- メインスクリプト -->
+    <!-- Firebase SDKs を追加 -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <!-- あなたのスクリプト -->
     <script type="module" src="/scripts/frontend-chat.js"></script>
 
     <!-- Bootstrap -->
