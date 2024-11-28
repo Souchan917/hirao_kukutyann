@@ -1,6 +1,8 @@
 // api/chat.js
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
+import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { db } from '../libs/firebase.js';
 
 // くくちゃんの基本プロンプト
 const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククちゃん"として会話を行います。
@@ -26,14 +28,63 @@ const CLASSIFICATION_PROMPT = `以下のユーザーの質問を「相談」「�
 
 回答は「相談」「雑談」のどちらかの1単語のみを返してください。`;
 
+// 過去のチャット履歴を取得する関数
+async function getPreviousChats(sessionId, maxMessages = 3) {
+    console.log('\n[履歴取得] セッションID:', sessionId);
+    try {
+        const chatQuery = query(
+            collection(db, "chatLogs"),
+            where("sessionId", "==", sessionId),
+            where("type", "in", ["user", "ai"]),
+            orderBy("timestamp", "desc"),
+            limit(maxMessages * 2) // user と ai のペアを取得するため2倍
+        );
+
+        const querySnapshot = await getDocs(chatQuery);
+        const messages = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            messages.push({
+                type: data.type,
+                content: data.content,
+                timestamp: data.timestamp
+            });
+        });
+
+        // 古い順に並び替え
+        messages.sort((a, b) => a.timestamp - b.timestamp);
+        
+        console.log(`[履歴取得] ${messages.length}件のメッセージを取得`);
+        return messages;
+    } catch (error) {
+        console.error("[履歴取得] エラー:", error);
+        return [];
+    }
+}
+
+// プロンプトに過去の会話を追加する関数
+function createPromptWithHistory(basePrompt, previousChats) {
+    if (!previousChats || previousChats.length === 0) {
+        return basePrompt;
+    }
+
+    let historyText = "\n\n### 過去の会話履歴 ###\n";
+    previousChats.forEach((message) => {
+        const role = message.type === "user" ? "ユーザー" : "ククちゃん";
+        historyText += `${role}: ${message.content}\n`;
+    });
+
+    return `${basePrompt}\n${historyText}`;
+}
+
 // 相談処理用の関数
-async function handleConsultation(userMessage, apiKey) {
+async function handleConsultation(userMessage, apiKey, sessionId, previousChats) {
     console.log('\n=== 相談処理開始 ===');
     console.log('入力メッセージ:', userMessage);
 
     // 1. 意図分析
     console.log('\n[1] 意図分析開始');
-    const intentPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に含まれている意図を詳細に分析してください。
+    const intentPrompt = createPromptWithHistory(`あなたはカウンセリングの専門家です。以下のユーザーの質問に含まれている意図を詳細に分析してください。
     ユーザーが質問を通じてどのようなサポートやアドバイスを期待しているのかを具体的に説明し、その背景や目的についても考察してください。
     また、質問の背後にある感情や動機についても考え、それがどのようにユーザーの期待や要求に影響を与えているかを分析してください。
     最終的に、ユーザーがどのような返答や行動を求めているかを推測してください。
@@ -41,9 +92,7 @@ async function handleConsultation(userMessage, apiKey) {
 
     ユーザーの質問: '${userMessage}'
     
-    意図の分析: ~~~`;
-    
-    console.log('意図分析プロンプト:', intentPrompt);
+    意図の分析: ~~~`, previousChats);
 
     const intentResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -63,26 +112,20 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`意図分析APIエラー: ${intentResponse.statusText}`);
     }
 
-    // 意図分析の結果をより見やすく出力
     const intentData = await intentResponse.json();
     const intentContent = intentData.choices[0].message.content.trim();
-    console.log('\n=== 意図分析の生成結果 ===');
-    console.log('--------------------');
-    console.log(intentContent);
-    console.log('--------------------\n');
+    console.log('\n=== 意図分析の結果 ===\n', intentContent);
 
     // 2. 追加質問の提案
     console.log('\n[2] 追加質問生成開始');
-    const followUpPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に対して以下を分析してください。
+    const followUpPrompt = createPromptWithHistory(`あなたはカウンセリングの専門家です。以下のユーザーの質問に対して以下を分析してください。
     ユーザーの質問に対して不足している環境や行動に関する情報を特定し、以下の点を踏まえつつ重要と判断される追加質問を2~3個提案してください。
     具体的に、ユーザーが提供していないが必要となる詳細な情報を特定し、それに基づいて質問を作成してください。
 
     ユーザーの質問: '${userMessage}'
     意図の分析: '${intentContent}'
 
-    追加質問の提案: ~~~`;
-
-    console.log('追加質問プロンプト:', followUpPrompt);
+    追加質問の提案: ~~~`, previousChats);
 
     const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -102,17 +145,13 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`追加質問生成APIエラー: ${followUpResponse.statusText}`);
     }
 
-    // 追加質問の結果をより見やすく出力
     const followUpData = await followUpResponse.json();
     const followUpContent = followUpData.choices[0].message.content.trim();
-    console.log('\n=== 追加質問の生成結果 ===');
-    console.log('--------------------');
-    console.log(followUpContent);
-    console.log('--------------------\n');
+    console.log('\n=== 追加質問の結果 ===\n', followUpContent);
 
     // 3. 最終的な回答生成
     console.log('\n[3] 最終回答生成開始');
-    const finalPrompt = `${KUKU_PROFILE}
+    const finalPrompt = createPromptWithHistory(`${KUKU_PROFILE}
 
     以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
     また、ユーザーが提供した情報に基づいて具体的なアドバイスを行い、必要な場合は追加の質問をしてください。
@@ -121,9 +160,7 @@ async function handleConsultation(userMessage, apiKey) {
     意図の分析: '${intentContent}'
     追加の質問提案: ${followUpContent}
 
-    ユーザーへの返答: ~~~`;
-
-    console.log('最終回答プロンプト:', finalPrompt);
+    ユーザーへの返答: ~~~`, previousChats);
 
     const finalResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -143,35 +180,28 @@ async function handleConsultation(userMessage, apiKey) {
         throw new Error(`最終回答生成APIエラー: ${finalResponse.statusText}`);
     }
 
-    // 最終回答の結果をより見やすく出力
     const finalData = await finalResponse.json();
     const finalContent = finalData.choices[0].message.content.trim();
-    console.log('\n=== 最終回答の生成結果 ===');
-    console.log('--------------------');
-    console.log(finalContent);
-    console.log('--------------------\n');
-    console.log('=== 相談処理完了 ===\n');
+    console.log('\n=== 最終回答 ===\n', finalContent);
 
     return finalContent;
 }
 
 // 雑談処理用の関数
-async function handleChatting(userMessage, apiKey) {
+async function handleChatting(userMessage, apiKey, sessionId, previousChats) {
     console.log('\n=== 雑談処理開始 ===');
     console.log('入力メッセージ:', userMessage);
 
     // 1. 追加質問の提案
     console.log('\n[1] 追加質問生成開始');
-    const followUpPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に含まれている意図を詳細に分析してください。
+    const followUpPrompt = createPromptWithHistory(`あなたはカウンセリングの専門家です。以下のユーザーの質問に含まれている意図を詳細に分析してください。
     ユーザーの質問に対して不足している環境や行動に関する情報を特定し、以下の点を踏まえつつ重要と判断される追加質問を2~3個提案してください。
     質問の背景理解：質問の主な内容と関連する問題点を把握します。
     不足情報の特定：環境要因、行動パターン、観測可能な変数など、欠けている重要情報を特定します。
 
     ユーザーの質問: '${userMessage}'
 
-    追加質問の提案: ~~~`;
-
-    console.log('追加質問プロンプト:', followUpPrompt);
+    追加質問の提案: ~~~`, previousChats);
 
     const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -193,11 +223,11 @@ async function handleChatting(userMessage, apiKey) {
 
     const followUpData = await followUpResponse.json();
     const followUpContent = followUpData.choices[0].message.content.trim();
-    console.log('追加質問生成結果:', followUpContent);
+    console.log('\n=== 追加質問の結果 ===\n', followUpContent);
 
     // 2. 最終的な回答生成
     console.log('\n[2] 最終回答生成開始');
-    const responsePrompt = `${KUKU_PROFILE}
+    const responsePrompt = createPromptWithHistory(`${KUKU_PROFILE}
 
     以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
     また、話を広げるような会話を必ず心がけてください。
@@ -205,9 +235,7 @@ async function handleChatting(userMessage, apiKey) {
     ユーザーの質問: '${userMessage}'
     追加の質問提案: ${followUpContent}
 
-    ユーザーへの返答: ~~~`;
-
-    console.log('最終回答プロンプト:', responsePrompt);
+    ユーザーへの返答: ~~~`, previousChats);
 
     const finalResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -229,8 +257,7 @@ async function handleChatting(userMessage, apiKey) {
 
     const finalData = await finalResponse.json();
     const finalContent = finalData.choices[0].message.content.trim();
-    console.log('\n最終回答:', finalContent);
-    console.log('=== 雑談処理完了 ===\n');
+    console.log('\n=== 最終回答 ===\n', finalContent);
 
     return finalContent;
 }
@@ -251,14 +278,19 @@ export default async function handler(req, res) {
     // セッションIDの管理
     let sessionId = req.cookies.sessionId;
     if (!sessionId) {
-        sessionId = uuidv4(); // 新しいセッションIDを生成
+        sessionId = uuidv4();
         res.setHeader('Set-Cookie', `sessionId=${sessionId}; HttpOnly; Path=/`);
     }
 
     try {
+        // 過去のチャット履歴を取得
+        console.log("過去のチャット履歴を取得中...");
+        const previousChats = await getPreviousChats(sessionId);
+        console.log("取得した過去のチャット数:", previousChats.length);
+
         // 1. メッセージの分類
         console.log('\n[1] メッセージ分類開始');
-        console.log('分類プロンプト:', CLASSIFICATION_PROMPT);
+        const classificationPrompt = createPromptWithHistory(CLASSIFICATION_PROMPT, previousChats);
 
         const classificationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -269,7 +301,7 @@ export default async function handler(req, res) {
             body: JSON.stringify({
                 model: 'gpt-3.5-turbo',
                 messages: [
-                    { role: 'system', content: CLASSIFICATION_PROMPT },
+                    { role: 'system', content: classificationPrompt },
                     { role: 'user', content: userMessage }
                 ],
                 temperature: 0.3,
@@ -292,10 +324,10 @@ export default async function handler(req, res) {
         let reply;
         if (messageType === '相談') {
             console.log('\n[2] 相談モードで処理開始');
-            reply = await handleConsultation(userMessage, apiKey, sessionId);
+            reply = await handleConsultation(userMessage, apiKey, sessionId, previousChats);
         } else {
             console.log('\n[2] 雑談モードで処理開始');
-            reply = await handleChatting(userMessage, apiKey, sessionId);
+            reply = await handleChatting(userMessage, apiKey, sessionId, previousChats);
         }
 
         // 3. 結果を返す

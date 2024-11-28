@@ -56,6 +56,7 @@ function getOrCreateSessionId(forceNew = false) {
     return sessionId;
 }
 
+// メッセージ送信関数
 async function sendMessage() {
     console.log("=== sendMessage 関数開始 ===");
 
@@ -79,23 +80,13 @@ async function sendMessage() {
         await saveMessage(message, "user", sessionId);
         addMessage(message, "user");
 
-        // 過去のチャット履歴を取得
-        const history = await getChatHistory(sessionId);
-        const pastMessages = history.map(message => ({
-            role: message.type === 'user' ? 'user' : 'assistant',
-            content: message.content
-        }));
-
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "X-Session-ID": sessionId
             },
-            body: JSON.stringify({ 
-                userMessage: message,
-                pastMessages: pastMessages  // 過去のメッセージを含める
-            })
+            body: JSON.stringify({ userMessage: message })
         });
 
         if (!response.ok) {
@@ -432,46 +423,22 @@ function resetSurveyUI() {
     getOrCreateSessionId(true);
 }
 
-async function getChatHistory(sessionId) {
-    console.log('チャット履歴を取得:', sessionId);
-
-    if (!sessionId) {
-        console.error('セッションIDが指定されていません');
-        return []; // 空の配列を返す
-    }
-
+// チャット履歴読み込み関数
+async function loadChatHistory() {
+    const sessionId = getOrCreateSessionId();
     try {
-        // 特定のセッションIDに対応するメッセージを時系列で取得
-        const chatQuery = query(
-            collection(db, "chatLogs"),
-            where("sessionId", "==", sessionId),
-            orderBy("timestamp", "asc")
-        );
+        console.log("チャット履歴を読み込み中...");
+        const history = await getChatHistory(sessionId);
 
-        const querySnapshot = await getDocs(chatQuery);
-        const messages = [];
-        
-        querySnapshot.forEach((doc) => {
-            let messageData = doc.data();
-            // timestampがFirestore Timestampオブジェクトの場合の処理
-            if (messageData.timestamp && typeof messageData.timestamp.toDate === 'function') {
-                messageData.timestamp = messageData.timestamp.toDate();
-            }
-            
-            messages.push({
-                id: doc.id,
-                ...messageData
+        if (history && history.length > 0) {
+            history.forEach(message => {
+                if (message.type !== 'rating' && message.type !== 'survey') {
+                    addMessage(message.content, message.type);
+                }
             });
-        });
-
-        console.log(`${messages.length}件のメッセージを取得しました`);
-        
-        // 最大3回分の過去のチャット履歴を返す
-        return messages.slice(-6);  // ユーザーとAIの発言を合わせて最大6件
+        }
     } catch (error) {
-        console.error('チャット履歴の取得中にエラーが発生:', error);
-        // エラーが発生しても空の配列を返す
-        return [];
+        console.error("チャット履歴の読み込みエラー:", error);
     }
 }
 
