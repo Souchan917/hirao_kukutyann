@@ -384,13 +384,56 @@ function resetSurveyUI() {
     getOrCreateSessionId(true);
 }
 
-// DOMContentLoadedイベントの処理を修正
+// チャット履歴読み込み関数
+async function loadChatHistory() {
+    const sessionId = getOrCreateSessionId();
+    try {
+        console.log("チャット履歴を読み込み中...");
+        const history = await getChatHistory(sessionId);
+
+        if (history && history.length > 0) {
+            history.forEach(message => {
+                if (message.type !== 'rating' && message.type !== 'survey') {
+                    addMessage(message.content, message.type);
+                }
+            });
+        }
+    } catch (error) {
+        console.error("チャット履歴の読み込みエラー:", error);
+    }
+}
+
+// イベントリスナーの設定
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOMContentLoaded: イベントリスナーの設定を開始");
-    
-    // 評価ボタンのセットアップ
+    console.log("DOMContentLoaded イベント発火");
     setupRatingButtons();
     
+    if (sendButton) {
+        sendButton.addEventListener("click", sendMessage);
+        console.log("送信ボタンのリスナーを設定");
+    }
+
+    if (resetButton) {
+        resetButton.addEventListener("click", resetChat);
+        console.log("リセットボタンのリスナーを設定");
+    }
+
+    if (questionInput) {
+        questionInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                sendMessage();
+            }
+        });
+        console.log("入力フィールドのリスナーを設定");
+    }
+
+    if (endChatButton) {
+        endChatButton.addEventListener("click", endChat);
+        console.log("終了ボタンのリスナーを設定");
+    } else {
+        console.error("終了ボタンが見つかりません");
+    }
+
     // アンケート送信ボタンのイベントリスナー
     if (submitSurveyButton) {
         submitSurveyButton.addEventListener("click", function(event) {
