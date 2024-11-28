@@ -21,7 +21,7 @@ const comparisonButtons = surveyForm.querySelectorAll('input[name="comparison"]'
 const intentionButtons = surveyForm.querySelectorAll('input[name="intention"]');
 
 // セッション管理用の定数
-const SESSION_STORAGE_KEY = 'kukuchan_session_id';
+const SESSION_ID_KEY = 'kukuchan_session_id';
 const CHAT_HISTORY_KEY = 'kukuchan_chat_history';
 
 // 状態管理
@@ -33,11 +33,11 @@ let surveyAnswers = {
     intention: 0
 };
 
-// ローカルストレージ関連の関数
+// セッションストレージ関連の関数
 function saveLocalChatHistory(content, type) {
     try {
         let history = [];
-        const savedHistory = localStorage.getItem(CHAT_HISTORY_KEY);
+        const savedHistory = sessionStorage.getItem(CHAT_HISTORY_KEY);
         if (savedHistory) {
             history = JSON.parse(savedHistory);
         }
@@ -53,43 +53,43 @@ function saveLocalChatHistory(content, type) {
             history = history.slice(-6);
         }
         
-        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
-        console.log('ローカルストレージに保存しました:', history);
+        sessionStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
+        console.log('セッションストレージに保存しました:', history);
     } catch (error) {
-        console.error('ローカル履歴の保存中にエラー:', error);
+        console.error('履歴の保存中にエラー:', error);
     }
 }
 
 function getLocalChatHistory() {
     try {
-        const history = localStorage.getItem(CHAT_HISTORY_KEY);
+        const history = sessionStorage.getItem(CHAT_HISTORY_KEY);
         return history ? JSON.parse(history) : [];
     } catch (error) {
-        console.error('ローカル履歴の取得中にエラー:', error);
+        console.error('履歴の取得中にエラー:', error);
         return [];
     }
 }
 
 function clearLocalChatHistory() {
-    localStorage.removeItem(CHAT_HISTORY_KEY);
-    console.log('ローカル履歴をクリアしました');
+    sessionStorage.removeItem(CHAT_HISTORY_KEY);
+    console.log('履歴をクリアしました');
 }
 
 // セッション管理の関数
 function getOrCreateSessionId(forceNew = false) {
     if (forceNew) {
         const newSessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        sessionStorage.setItem(SESSION_STORAGE_KEY, newSessionId);
+        sessionStorage.setItem(SESSION_ID_KEY, newSessionId);
         document.cookie = `sessionId=${newSessionId}; path=/`;
         console.log("新しいセッションIDを生成:", newSessionId);
         return newSessionId;
     }
 
-    let sessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    let sessionId = sessionStorage.getItem(SESSION_ID_KEY);
     
     if (!sessionId) {
         sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+        sessionStorage.setItem(SESSION_ID_KEY, sessionId);
         document.cookie = `sessionId=${sessionId}; path=/`;
         console.log("新しいセッションIDを生成:", sessionId);
     } else {
@@ -106,7 +106,7 @@ function addMessage(content, type) {
     messageDiv.textContent = content;
     chatContainer.appendChild(messageDiv);
 
-    // ローカルストレージに保存
+    // セッションストレージに保存
     saveLocalChatHistory(content, type);
 
     if (type === "ai") {
@@ -314,10 +314,17 @@ function endChat() {
     surveyForm.scrollIntoView({ behavior: 'smooth' });
 }
 
+// リセット関数
+function resetChat() {
+    if (confirm("チャット履歴をリセットしてもよろしいですか？")) {
+        chatContainer.innerHTML = "";
+        clearLocalChatHistory();
+        getOrCreateSessionId(true);
+    }
+}
+
 // アンケート関連の関数
 function setupRatingButtons() {
-    console.log("評価ボタンのセットアップを開始");
-
     const buttonGroups = [
         { buttons: satisfactionButtons, name: 'satisfaction', label: '満足度' },
         { buttons: personalizedButtons, name: 'personalization', label: '個別化された回答' },
@@ -343,8 +350,7 @@ function setupRatingButtons() {
         group.buttons.forEach(button => {
             button.addEventListener('change', function() {
                 surveyAnswers[group.name] = parseInt(this.value);
-                console.log(`${group.label}の評価を更新:`, surveyAnswers[group.name]);
-
+                
                 const allLabels = document.querySelectorAll(`label[for^="${group.name}"]`);
                 allLabels.forEach(label => {
                     Object.assign(label.style, defaultStyle);
@@ -388,7 +394,6 @@ function setupRatingButtons() {
 
 async function submitSurvey(event) {
     event.preventDefault();
-    console.log("アンケート送信処理を開始");
 
     const unansweredCategories = [];
     if (surveyAnswers.satisfaction === 0) unansweredCategories.push('満足度');
@@ -435,7 +440,7 @@ async function submitSurvey(event) {
     }
 }
 
-// UI関連の関数
+// UIリセット関数
 function resetSurveyUI() {
     surveyForm.style.display = 'none';
     chatContainer.innerHTML = '';
@@ -457,19 +462,12 @@ function resetSurveyUI() {
     getOrCreateSessionId(true);
 }
 
-function resetChat() {
-    if (confirm("チャット履歴をリセットしてもよろしいですか？")) {
-        chatContainer.innerHTML = "";
-        clearLocalChatHistory();
-        getOrCreateSessionId(true);
-    }
-}
-
-// チャット履歴読み込み関数
+// チャット履歴関連の関数
 async function loadChatHistory() {
     const sessionId = getOrCreateSessionId();
     try {
         console.log("チャット履歴を読み込み中...");
+        // Firebaseから履歴を取得
         const history = await getChatHistory(sessionId);
 
         if (history && history.length > 0) {
@@ -484,10 +482,10 @@ async function loadChatHistory() {
     }
 }
 
-// デバッグ用関数
-function debugLocalStorage() {
+// デバッグ用の関数
+function debugSessionStorage() {
     const history = getLocalChatHistory();
-    console.log('現在のローカルストレージの内容:', history);
+    console.log('現在のセッションストレージの内容:', history);
 }
 
 // イベントリスナーの設定
@@ -535,9 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ページロード時の処理
 window.addEventListener('load', () => {
     console.log("ページロード処理開始");
-    if (!document.hidden) {
-        getOrCreateSessionId(true);
-    }
+    getOrCreateSessionId(true);
     loadChatHistory();
 });
 
@@ -545,16 +541,6 @@ window.addEventListener('load', () => {
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
         console.log("タブがアクティブになりました");
-        getOrCreateSessionId(true);
-        chatContainer.innerHTML = '';
-        loadChatHistory();
-    }
-});
-
-// セッションストレージの変更を監視
-window.addEventListener('storage', (event) => {
-    if (event.key === SESSION_STORAGE_KEY) {
-        console.log("セッションストレージの変更を検出");
         loadChatHistory();
     }
 });
