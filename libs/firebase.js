@@ -1,13 +1,13 @@
 // libs/firebase.js
 
-// Firebaseのインポート
+// Firebaseのインポート - whereを追加
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { 
     getFirestore, 
     collection, 
     addDoc,
     query, 
-    where,
+    where, // whereを追加
     orderBy,
     getDocs 
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
