@@ -113,7 +113,7 @@ async function handleConsultation(userMessage, apiKey) {
     // 3. 最終的な回答生成
     console.log('\n[3] 最終回答生成開始');
     const finalPrompt = `${KUKU_PROFILE}
-
+    ${userMessage.conversationHistory ? `\n### 過去の会話履歴 ###\n${userMessage.conversationHistory}\n` : ''}
     以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
     また、ユーザーが提供した情報に基づいて具体的なアドバイスを行い、必要な場合は追加の質問をしてください。
 
@@ -198,7 +198,7 @@ async function handleChatting(userMessage, apiKey) {
     // 2. 最終的な回答生成
     console.log('\n[2] 最終回答生成開始');
     const responsePrompt = `${KUKU_PROFILE}
-
+    ${userMessage.conversationHistory ? `\n### 過去の会話履歴 ###\n${userMessage.conversationHistory}\n` : ''}
     以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
     また、話を広げるような会話を必ず心がけてください。
 

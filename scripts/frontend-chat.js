@@ -56,10 +56,65 @@ function getOrCreateSessionId(forceNew = false) {
     return sessionId;
 }
 
-// メッセージ送信関数
-async function sendMessage() {
-    console.log("=== sendMessage 関数開始 ===");
+// ローカルストレージのキー
+const CHAT_HISTORY_KEY = 'kukuchan_chat_history';
 
+// チャット履歴をローカルストレージに保存する関数
+function saveLocalChatHistory(content, type) {
+    try {
+        // 既存の履歴を取得
+        const history = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
+        
+        // 新しいメッセージを追加
+        history.push({
+            content,
+            type,
+            timestamp: new Date().toISOString()
+        });
+        
+        // ローカルストレージに保存
+        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
+    } catch (error) {
+        console.error('ローカル履歴の保存中にエラー:', error);
+    }
+}
+
+// チャット履歴を取得する関数
+function getLocalChatHistory() {
+    try {
+        return JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
+    } catch (error) {
+        console.error('ローカル履歴の取得中にエラー:', error);
+        return [];
+    }
+}
+
+// チャット履歴をクリアする関数
+function clearLocalChatHistory() {
+    localStorage.removeItem(CHAT_HISTORY_KEY);
+}
+
+// 直近の会話履歴を取得する関数
+function getRecentConversations() {
+    const history = getLocalChatHistory();
+    const conversations = history
+        .filter(msg => msg.type === 'user' || msg.type === 'ai')
+        .slice(-6)  // 最新3組の会話を取得
+        .map(msg => ({
+            role: msg.type === 'user' ? 'ユーザー' : 'ククちゃん',
+            content: msg.content
+        }));
+
+    if (conversations.length === 0) return '';
+
+    return conversations
+        .map(conv => `${conv.role}: ${conv.content}`)
+        .join('\n');
+}
+
+
+// 既存のsendMessage関数を修正
+async function sendMessage() {
     if (isSubmitting) {
         console.log("送信中のため処理をスキップします");
         return;
@@ -77,16 +132,24 @@ async function sendMessage() {
 
     try {
         const sessionId = getOrCreateSessionId();
+        // Firebaseとローカルの両方に保存
         await saveMessage(message, "user", sessionId);
+        saveLocalChatHistory(message, "user");
         addMessage(message, "user");
 
+        // 過去の会話履歴を取得
+        const recentConversations = getRecentConversations();
+        
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "X-Session-ID": sessionId
             },
-            body: JSON.stringify({ userMessage: message })
+            body: JSON.stringify({ 
+                userMessage: message,
+                conversationHistory: recentConversations  // 会話履歴を送信
+            })
         });
 
         if (!response.ok) {
@@ -96,6 +159,7 @@ async function sendMessage() {
         const data = await response.json();
         addMessage(data.reply, "ai");
         await saveMessage(data.reply, "ai", sessionId);
+        saveLocalChatHistory(data.reply, "ai");
 
     } catch (error) {
         console.error("チャットフロー内でエラー:", error);
@@ -248,10 +312,11 @@ async function handleRating(rating, content, activeBtn, inactiveBtn) {
     }
 }
 
-// チャットリセット関数
+// リセット機能の修正
 function resetChat() {
     if (confirm("チャット履歴をリセットしてもよろしいですか？")) {
         chatContainer.innerHTML = "";
+        clearLocalChatHistory();
         getOrCreateSessionId(true);
     }
 }
