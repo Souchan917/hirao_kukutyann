@@ -256,9 +256,6 @@ function resetChat() {
     }
 }
 
-// 最初に既存の setupRatingButtons の定義をすべて削除し、以下の実装だけを使用します
-
-// setupRatingButtons 関数を修正
 function setupRatingButtons() {
     console.log("評価ボタンのセットアップを開始");
 
@@ -269,19 +266,71 @@ function setupRatingButtons() {
         { buttons: intentionButtons, name: 'intention', label: '意図の理解' }
     ];
 
+    // 選択されたボタンのスタイル
+    const selectedStyle = {
+        backgroundColor: '#2196f3', // より鮮やかな青
+        color: 'white',            // 白文字
+        borderColor: '#1976d2',    // やや暗い青で枠取り
+        fontWeight: 'bold',        // 太字
+    };
+
+    // 非選択のボタンのスタイル
+    const defaultStyle = {
+        backgroundColor: 'white',
+        color: '#333',
+        borderColor: '#dee2e6',
+        fontWeight: 'normal'
+    };
+
     buttonGroups.forEach(group => {
         group.buttons.forEach(button => {
             button.addEventListener('change', function() {
-                // 値を保存（ラジオボタンの値は1から5）
+                // 値を保存
                 surveyAnswers[group.name] = parseInt(this.value);
                 console.log(`${group.label}の評価を更新:`, surveyAnswers[group.name]);
                 console.log('現在の回答状態:', surveyAnswers);
 
-                // 選択されたラベルをハイライト
-                const labels = document.querySelectorAll(`label[for="${this.id}"]`);
-                labels.forEach(label => {
-                    label.style.backgroundColor = '#e3f2fd';
+                // 同じグループの全てのラベルを非選択状態のスタイルにリセット
+                const allLabels = document.querySelectorAll(`label[for^="${group.name}"]`);
+                allLabels.forEach(label => {
+                    Object.assign(label.style, defaultStyle);
+                    label.classList.remove('selected');
                 });
+
+                // 選択されたラベルのスタイルを変更
+                const selectedLabel = document.querySelector(`label[for="${this.id}"]`);
+                if (selectedLabel) {
+                    Object.assign(selectedLabel.style, selectedStyle);
+                    selectedLabel.classList.add('selected');
+
+                    // ホバーエフェクトを追加
+                    selectedLabel.addEventListener('mouseover', () => {
+                        selectedLabel.style.backgroundColor = '#1976d2';  // やや暗い青
+                    });
+                    selectedLabel.addEventListener('mouseout', () => {
+                        if (selectedLabel.classList.contains('selected')) {
+                            selectedLabel.style.backgroundColor = selectedStyle.backgroundColor;
+                        }
+                    });
+                }
+            });
+        });
+
+        // 初期状態のスタイルを設定
+        const labels = document.querySelectorAll(`label[for^="${group.name}"]`);
+        labels.forEach(label => {
+            Object.assign(label.style, defaultStyle);
+            
+            // ホバーエフェクトを追加
+            label.addEventListener('mouseover', () => {
+                if (!label.classList.contains('selected')) {
+                    label.style.backgroundColor = '#f8f9fa';  // 薄いグレー
+                }
+            });
+            label.addEventListener('mouseout', () => {
+                if (!label.classList.contains('selected')) {
+                    label.style.backgroundColor = defaultStyle.backgroundColor;
+                }
             });
         });
     });
