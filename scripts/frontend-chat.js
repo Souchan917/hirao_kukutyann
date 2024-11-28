@@ -255,41 +255,62 @@ function resetChat() {
     }
 }
 
-// 評価ボタンのセットアップ関数
+// 評価ボタンのセットアップ関数を修正
 function setupRatingButtons() {
     console.log("評価ボタンのセットアップを開始");
-    
-    const setupButtonGroup = (buttons, category) => {
-        console.log(`${category}のボタン設定開始`);
-        buttons.forEach((button, index) => {
+
+    const ratingGroups = [
+        { name: 'satisfaction', label: '満足度', buttons: document.querySelectorAll('div[aria-label="満足度"] strong') },
+        { name: 'personalization', label: '個別化された回答', buttons: document.querySelectorAll('div[aria-label="個別化された回答"] strong') },
+        { name: 'comparison', label: '比較', buttons: document.querySelectorAll('div[aria-label="比較"] strong') },
+        { name: 'intention', label: '意図の理解', buttons: document.querySelectorAll('div[aria-label="意図の理解"] strong') }
+    ];
+
+    ratingGroups.forEach(group => {
+        if (!group.buttons.length) {
+            console.error(`${group.label}のボタンが見つかりません`);
+            return;
+        }
+
+        group.buttons.forEach((button, index) => {
+            // スタイリングを追加
             button.style.cursor = 'pointer';
             button.style.padding = '8px';
             button.style.borderRadius = '4px';
+            button.style.transition = 'all 0.2s ease';
+            button.style.display = 'inline-block';
 
-            button.addEventListener('click', () => {
-                // 同じグループの他のボタンの選択を解除
-                buttons.forEach(btn => {
-                    btn.classList.remove('selected');
-                    btn.style.backgroundColor = '';
+            // クリックイベントを追加
+            button.onclick = () => {
+                // 同じグループの他のボタンをリセット
+                group.buttons.forEach(b => {
+                    b.style.backgroundColor = '';
+                    b.style.color = '';
                 });
 
-                // クリックされたボタンの選択状態を設定
-                button.classList.add('selected');
+                // 選択されたボタンのスタイルを変更
                 button.style.backgroundColor = '#e3f2fd';
+                button.style.color = '#1976d2';
 
                 // 回答を保存
-                surveyAnswers[category] = index + 1;
-                console.log(`${category}の評価を更新:`, index + 1);
+                surveyAnswers[group.name] = index + 1;
+                console.log(`${group.label}の評価を更新:`, index + 1);
                 console.log('現在の回答状態:', surveyAnswers);
-            });
-        });
-    };
+            };
 
-    // 各評価グループの設定
-    setupButtonGroup(satisfactionButtons, 'satisfaction');
-    setupButtonGroup(personalizedButtons, 'personalization');
-    setupButtonGroup(comparisonButtons, 'comparison');
-    setupButtonGroup(intentionButtons, 'intention');
+            // ホバーエフェクト
+            button.onmouseover = () => {
+                if (!surveyAnswers[group.name] === index + 1) {
+                    button.style.backgroundColor = '#f5f5f5';
+                }
+            };
+            button.onmouseout = () => {
+                if (!surveyAnswers[group.name] === index + 1) {
+                    button.style.backgroundColor = '';
+                }
+            };
+        });
+    });
 }
 
 // チャット終了関数
@@ -305,22 +326,22 @@ function endChat() {
     surveyForm.scrollIntoView({ behavior: 'smooth' });
 }
 
-// アンケート送信関数
+// アンケート送信関数も修正
 async function submitSurvey(event) {
     event.preventDefault();
     console.log("アンケート送信処理を開始");
-    console.log("現在の回答状態:", surveyAnswers);
+    console.log("送信前の回答状態:", surveyAnswers);
 
     // 未回答チェック
     const unansweredCategories = [];
-    if (!surveyAnswers.satisfaction) unansweredCategories.push('満足度');
-    if (!surveyAnswers.personalization) unansweredCategories.push('個別化された回答');
-    if (!surveyAnswers.comparison) unansweredCategories.push('比較');
-    if (!surveyAnswers.intention) unansweredCategories.push('意図の理解');
+    if (surveyAnswers.satisfaction === 0) unansweredCategories.push('満足度');
+    if (surveyAnswers.personalization === 0) unansweredCategories.push('個別化された回答');
+    if (surveyAnswers.comparison === 0) unansweredCategories.push('比較');
+    if (surveyAnswers.intention === 0) unansweredCategories.push('意図の理解');
 
     if (unansweredCategories.length > 0) {
         const message = `以下の項目が未回答です：\n${unansweredCategories.join('\n')}`;
-        console.log("未回答項目:", message);
+        console.log("未回答項目があります:", message);
         alert(message);
         return;
     }
@@ -332,7 +353,12 @@ async function submitSurvey(event) {
         const sessionId = getOrCreateSessionId();
         const surveyData = {
             timestamp: new Date().toISOString(),
-            answers: { ...surveyAnswers },
+            answers: {
+                satisfaction: surveyAnswers.satisfaction,
+                personalization: surveyAnswers.personalization,
+                comparison: surveyAnswers.comparison,
+                intention: surveyAnswers.intention
+            },
             sessionId: sessionId
         };
 
