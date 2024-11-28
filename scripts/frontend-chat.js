@@ -443,7 +443,7 @@ window.addEventListener('load', () => {
     if (!document.hidden) {
         getOrCreateSessionId(true);
     }
-    // loadChatHistory();
+    loadChatHistory();
 });
 
 // visibility変更時の処理を追加
@@ -453,7 +453,7 @@ document.addEventListener('visibilitychange', () => {
         console.log("タブがアクティブになりました");
         getOrCreateSessionId(true);
         chatContainer.innerHTML = ''; // チャット履歴をクリア
-        // loadChatHistory();
+        loadChatHistory();
     }
 });
 
