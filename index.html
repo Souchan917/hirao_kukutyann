@@ -141,49 +141,69 @@
             font-size: 1.2rem;
         }
 
-/* アンケートフォームのスタイル */
-.btn-group {
-  display: flex !important;
-  justify-content: space-between !important;
-  width: 100%;
-  gap: 2px;
-}
+        /* アンケートフォーム */
+        #survey-form {
+            margin-top: 40px;
+        }
 
-.btn-group strong {
-  flex: 1;
-  padding: 8px 2px;
-  font-size: 0.8rem;
-  text-align: center;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  cursor: pointer;
-  transition: all 0.2s;
-  user-select: none;
-}
+        .btn-group {
+            min-width: 100%;
+            overflow-x: auto;
+            flex-wrap: nowrap !important;
+        }
 
-.btn-group strong:first-child {
-  border-top-left-radius: 4px;
-  border-bottom-left-radius: 4px;
-}
+        .btn-group .btn {
+            white-space: nowrap;
+            min-width: max-content;
+            flex: 1;
+        }
 
-.btn-group strong:last-child {
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 4px;
-}
+        .btn-check:checked + .btn-outline-primary {
+            background-color: #0d6efd;
+            color: white;
+        }
 
-.btn-group strong.selected {
-  background-color: #0d6efd;
-  color: white;
-  border-color: #0d6efd;
-}
 
-/* レスポンシブ対応 */
-@media (max-width: 576px) {
-  .btn-group strong {
-    padding: 6px 1px;
-    font-size: 0.75rem;
-  }
-}
+        .rating-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .rating-buttons label {
+            flex: 1;
+            text-align: center;
+            font-size: 0.9rem;
+            padding: 8px 4px;
+            white-space: normal;
+            height: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80px;
+        }
+
+        .btn-check:checked + .btn-outline-primary {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        /* スマートフォン向けの調整 */
+        @media (max-width: 576px) {
+            .rating-buttons label {
+                font-size: 0.8rem;
+                padding: 4px 2px;
+            }
+        }
+
+        /* レスポンシブ対応 */
+        .survey-item {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
     </style>
 </head>
 <body>
