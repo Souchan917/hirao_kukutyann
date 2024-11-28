@@ -231,32 +231,6 @@
 </head>
 <body>
 
-
-
-
-    <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-analytics.js";
-        // TODO: Add SDKs for Firebase products that you want to use
-        // https://firebase.google.com/docs/web/setup#available-libraries
-      
-        // Your web app's Firebase configuration
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-        const firebaseConfig = {
-          apiKey: "AIzaSyACZVcf8cWzcu698PdbKKRVcbStH82lavc",
-          authDomain: "kukutyan-f48ae.firebaseapp.com",
-          projectId: "kukutyan-f48ae",
-          storageBucket: "kukutyan-f48ae.firebasestorage.app",
-          messagingSenderId: "894594120998",
-          appId: "1:894594120998:web:9160722e1d27e98afbd5e7",
-          measurementId: "G-8FSDCGV2M7"
-        };
-      
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-      </script>
     <!-- 同意画面 -->
     <div id="consent-overlay">
         <div id="consent-box">
@@ -294,7 +268,7 @@
                             
                             <!-- 入力エリア -->
                             <div class="input-container">
-                                <input type="text" id="questionInput" placeholder="質問を入力してください">
+                                <input type="text" id="questionInput" class="form-control" placeholder="質問を入力してください">
                                 <button id="sendQuestion" class="btn btn-primary">送信</button>
                                 <button id="resetChat" class="btn btn-secondary">リセット</button>
                             </div>
@@ -315,7 +289,7 @@
                     </div>
 
                     <div class="text-center mt-4">
-                        <button type="button" class="btn btn-secondary mt-4" id="endChat">チャットを終わる</button>
+                        <button id="endChat" class="btn btn-secondary">チャットを終わる</button>
                     </div>
                 </div>
             </div>
@@ -443,5 +417,43 @@
             document.getElementById('main-content').style.display = 'block';
         });
     </script>
+
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-analytics.js";
+        import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp } 
+        from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+    
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+        apiKey: "AIzaSyACZVcf8cWzcu698PdbKKRVcbStH82lavc",
+        authDomain: "kukutyan-f48ae.firebaseapp.com",
+        projectId: "kukutyan-f48ae",
+        storageBucket: "kukutyan-f48ae.firebasestorage.app",
+        messagingSenderId: "894594120998",
+        appId: "1:894594120998:web:9160722e1d27e98afbd5e7",
+        measurementId: "G-8FSDCGV2M7"
+        };
+    
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+    
+        // グローバルに使用できるようにwindowオブジェクトに追加
+        window.db = db;
+        window.firebase = {
+        firestore: {
+            FieldValue: {
+            serverTimestamp: serverTimestamp
+            }
+        }
+        };
+    </script>
+    
+    <!-- アプリケーションのJavaScript -->
+    <script type="module" src="/scripts/frontend-chat.js"></script>
 </body>
 </html>

@@ -1,35 +1,12 @@
 // libs/firebase.js
+import { collection, addDoc, query, where, getDocs, serverTimestamp } 
+  from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-// クライアントサイドでのFirebaseの読み込みを確認
-if (typeof firebase === 'undefined') {
+// データベースインスタンスの取得
+const db = window.db;
+
+if (!db) {
     throw new Error('Firebaseが読み込まれていません。index.htmlにFirebaseのCDNスクリプトを追加してください。');
-}
-
-// Firebaseの設定
-const firebaseConfig = {
-    apiKey: "AIzxSyACzVcf8eNzcu698PdbKKRVcbStH821avc",
-    authDomain: "kukutyan-f48ae.firebaseapp.com",
-    projectId: "kukutyan-f48ae",
-    storageBucket: "kukutyan-f48ae.firebasestorage.app",
-    messagingSenderId: "894594120998",
-    appId: "1:894594120998:web:9160722e1d27e98afbd5e7",
-    measurementId: "G-8F3DC6V2M7"
-};
-
-let db;
-
-// Firebaseの初期化
-try {
-    console.log('Firebaseの初期化を開始...');
-    // アプリが既に初期化されているかチェック
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    db = firebase.firestore();
-    console.log('Firebaseの初期化が完了しました');
-} catch (error) {
-    console.error('Firebaseの初期化中にエラーが発生:', error);
-    throw error;
 }
 
 /**
@@ -45,11 +22,11 @@ export async function saveMessage(content, type, sessionId) {
     }
 
     try {
-        const docRef = await db.collection("chatLogs").add({
+        const docRef = await addDoc(collection(db, "chatLogs"), {
             content: content,
             type: type,
             sessionId: sessionId,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            timestamp: serverTimestamp()
         });
         
         console.log('メッセージを保存しました。Document ID:', docRef.id);
@@ -72,9 +49,11 @@ export async function getChatHistory(sessionId) {
     }
 
     try {
-        const snapshot = await db.collection("chatLogs")
-            .where("sessionId", "==", sessionId)
-            .get();
+        const q = query(
+            collection(db, "chatLogs"),
+            where("sessionId", "==", sessionId)
+        );
+        const snapshot = await getDocs(q);
 
         const messages = [];
         snapshot.forEach(doc => {
