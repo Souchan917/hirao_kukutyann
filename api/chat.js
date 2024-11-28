@@ -2,7 +2,7 @@
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
 
-// くくちゃんの基本プロンプト
+// ククちゃんの基本プロンプト
 const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククちゃん"として会話を行います。
 ユーザーに親身になり、共感してください。
 
@@ -27,7 +27,7 @@ const CLASSIFICATION_PROMPT = `以下のユーザーの質問を「相談」「�
 回答は「相談」「雑談」のどちらかの1単語のみを返してください。`;
 
 // 相談処理用の関数
-async function handleConsultation(userMessage, apiKey) {
+async function handleConsultation(userMessage, apiKey, pastMessages) {
     console.log('\n=== 相談処理開始 ===');
     console.log('入力メッセージ:', userMessage);
 
@@ -112,16 +112,22 @@ async function handleConsultation(userMessage, apiKey) {
 
     // 3. 最終的な回答生成
     console.log('\n[3] 最終回答生成開始');
+
+    // プロンプトに過去のメッセージを含める
+    const pastMessagesString = pastMessages.map(message => `${message.role}: ${message.content}`).join('\n');
     const finalPrompt = `${KUKU_PROFILE}
 
-    以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
-    また、ユーザーが提供した情報に基づいて具体的なアドバイスを行い、必要な場合は追加の質問をしてください。
+過去のチャット履歴:
+${pastMessagesString}
 
-    ユーザーの質問: '${userMessage}'
-    意図の分析: '${intentContent}'
-    追加の質問提案: ${followUpContent}
+以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
+また、ユーザーが提供した情報に基づいて具体的なアドバイスを行い、必要な場合は追加の質問をしてください。
 
-    ユーザーへの返答: ~~~`;
+ユーザーの質問: '${userMessage}'
+意図の分析: '${intentContent}'
+追加の質問提案: ${followUpContent}
+
+ユーザーへの返答: ~~~`;
 
     console.log('最終回答プロンプト:', finalPrompt);
 
@@ -156,7 +162,7 @@ async function handleConsultation(userMessage, apiKey) {
 }
 
 // 雑談処理用の関数
-async function handleChatting(userMessage, apiKey) {
+async function handleChatting(userMessage, apiKey, pastMessages) {
     console.log('\n=== 雑談処理開始 ===');
     console.log('入力メッセージ:', userMessage);
 
@@ -197,15 +203,21 @@ async function handleChatting(userMessage, apiKey) {
 
     // 2. 最終的な回答生成
     console.log('\n[2] 最終回答生成開始');
+
+    // プロンプトに過去のメッセージを含める
+    const pastMessagesString = pastMessages.map(message => `${message.role}: ${message.content}`).join('\n');
     const responsePrompt = `${KUKU_PROFILE}
 
-    以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
-    また、話を広げるような会話を必ず心がけてください。
+過去のチャット履歴:
+${pastMessagesString}
 
-    ユーザーの質問: '${userMessage}'
-    追加の質問提案: ${followUpContent}
+以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
+また、話を広げるような会話を必ず心がけてください。
 
-    ユーザーへの返答: ~~~`;
+ユーザーの質問: '${userMessage}'
+追加の質問提案: ${followUpContent}
+
+ユーザーへの返答: ~~~`;
 
     console.log('最終回答プロンプト:', responsePrompt);
 
@@ -240,7 +252,7 @@ export default async function handler(req, res) {
     console.log('\n====== チャット処理開始 ======');
     console.log('受信メッセージ:', req.body.userMessage);
 
-    const { userMessage } = req.body;
+    const { userMessage, pastMessages } = req.body;
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
@@ -292,10 +304,10 @@ export default async function handler(req, res) {
         let reply;
         if (messageType === '相談') {
             console.log('\n[2] 相談モードで処理開始');
-            reply = await handleConsultation(userMessage, apiKey, sessionId);
+            reply = await handleConsultation(userMessage, apiKey, pastMessages);
         } else {
             console.log('\n[2] 雑談モードで処理開始');
-            reply = await handleChatting(userMessage, apiKey, sessionId);
+            reply = await handleChatting(userMessage, apiKey, pastMessages);
         }
 
         // 3. 結果を返す
