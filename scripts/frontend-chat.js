@@ -55,18 +55,6 @@ function getOrCreateSessionId(forceNew = false) {
     return sessionId;
 }
 
-// Cookie値を取得する関数
-function getCookieValue(name) {
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.startsWith(name + '=')) {
-            return cookie.substring(name.length + 1);
-        }
-    }
-    return null;
-}
-
 // メッセージ送信関数
 async function sendMessage() {
     console.log("=== sendMessage 関数開始 ===");
@@ -78,7 +66,6 @@ async function sendMessage() {
 
     const message = questionInput.value.trim();
     if (!message) {
-        console.log("メッセージが空です");
         alert("メッセージを入力してください。");
         return;
     }
@@ -268,56 +255,41 @@ function resetChat() {
     }
 }
 
-// まず、評価ボタン関連の関数を修正
+// 評価ボタンのセットアップ関数
 function setupRatingButtons() {
     console.log("評価ボタンのセットアップを開始");
     
-    const ratingGroups = [
-        { selector: 'div[aria-label="満足度"]', category: 'satisfaction', label: '満足度' },
-        { selector: 'div[aria-label="個別化された回答"]', category: 'personalization', label: '個別化された回答' },
-        { selector: 'div[aria-label="比較"]', category: 'comparison', label: '比較' },
-        { selector: 'div[aria-label="意図の理解"]', category: 'intention', label: '意図の理解' }
-    ];
-
-    ratingGroups.forEach(group => {
-        const container = surveyForm.querySelector(group.selector);
-        if (!container) {
-            console.error(`${group.label}のコンテナが見つかりません`);
-            return;
-        }
-
-        const buttons = container.querySelectorAll('strong');
-        if (buttons.length === 0) {
-            console.error(`${group.label}のボタンが見つかりません`);
-            return;
-        }
-
+    const setupButtonGroup = (buttons, category) => {
+        console.log(`${category}のボタン設定開始`);
         buttons.forEach((button, index) => {
-            // スタイルの追加
             button.style.cursor = 'pointer';
             button.style.padding = '8px';
             button.style.borderRadius = '4px';
-            button.style.transition = 'background-color 0.2s';
 
             button.addEventListener('click', () => {
-                console.log(`${group.label}の${index + 1}番目のボタンがクリックされました`);
-                
                 // 同じグループの他のボタンの選択を解除
                 buttons.forEach(btn => {
                     btn.classList.remove('selected');
                     btn.style.backgroundColor = '';
                 });
-                
-                // クリックされたボタンを選択状態に
+
+                // クリックされたボタンの選択状態を設定
                 button.classList.add('selected');
                 button.style.backgroundColor = '#e3f2fd';
-                
+
                 // 回答を保存
-                surveyAnswers[group.category] = index + 1;
+                surveyAnswers[category] = index + 1;
+                console.log(`${category}の評価を更新:`, index + 1);
                 console.log('現在の回答状態:', surveyAnswers);
             });
         });
-    });
+    };
+
+    // 各評価グループの設定
+    setupButtonGroup(satisfactionButtons, 'satisfaction');
+    setupButtonGroup(personalizedButtons, 'personalization');
+    setupButtonGroup(comparisonButtons, 'comparison');
+    setupButtonGroup(intentionButtons, 'intention');
 }
 
 // チャット終了関数
@@ -333,22 +305,22 @@ function endChat() {
     surveyForm.scrollIntoView({ behavior: 'smooth' });
 }
 
-// submitSurvey 関数を修正
+// アンケート送信関数
 async function submitSurvey(event) {
     event.preventDefault();
     console.log("アンケート送信処理を開始");
-    console.log("送信前の回答状態:", surveyAnswers);
+    console.log("現在の回答状態:", surveyAnswers);
 
-    // バリデーション
+    // 未回答チェック
     const unansweredCategories = [];
-    if (surveyAnswers.satisfaction === 0) unansweredCategories.push('満足度');
-    if (surveyAnswers.personalization === 0) unansweredCategories.push('個別化された回答');
-    if (surveyAnswers.comparison === 0) unansweredCategories.push('比較');
-    if (surveyAnswers.intention === 0) unansweredCategories.push('意図の理解');
+    if (!surveyAnswers.satisfaction) unansweredCategories.push('満足度');
+    if (!surveyAnswers.personalization) unansweredCategories.push('個別化された回答');
+    if (!surveyAnswers.comparison) unansweredCategories.push('比較');
+    if (!surveyAnswers.intention) unansweredCategories.push('意図の理解');
 
     if (unansweredCategories.length > 0) {
         const message = `以下の項目が未回答です：\n${unansweredCategories.join('\n')}`;
-        console.log("未回答項目があります:", message);
+        console.log("未回答項目:", message);
         alert(message);
         return;
     }
@@ -360,22 +332,17 @@ async function submitSurvey(event) {
         const sessionId = getOrCreateSessionId();
         const surveyData = {
             timestamp: new Date().toISOString(),
-            answers: {
-                satisfaction: surveyAnswers.satisfaction,
-                personalization: surveyAnswers.personalization,
-                comparison: surveyAnswers.comparison,
-                intention: surveyAnswers.intention
-            },
+            answers: { ...surveyAnswers },
             sessionId: sessionId
         };
 
-        console.log("送信するデータ:", surveyData);
-        const result = await saveMessage(JSON.stringify(surveyData), "survey", sessionId);
-        console.log("送信結果:", result);
-        
+        console.log("Firebaseに送信するデータ:", surveyData);
+        await saveMessage(JSON.stringify(surveyData), "survey", sessionId);
+        console.log("Firebaseへの送信完了");
+
         alert("アンケートにご協力いただき、ありがとうございました。");
         resetSurveyUI();
-        
+
     } catch (error) {
         console.error("アンケート送信エラー:", error);
         alert("送信に失敗しました。もう一度お試しください。");
@@ -413,7 +380,7 @@ async function loadChatHistory() {
     try {
         console.log("チャット履歴を読み込み中...");
         const history = await getChatHistory(sessionId);
-        
+
         if (history && history.length > 0) {
             history.forEach(message => {
                 if (message.type !== 'rating' && message.type !== 'survey') {
@@ -428,6 +395,7 @@ async function loadChatHistory() {
 
 // イベントリスナーの設定
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOMContentLoaded イベント発火");
     setupRatingButtons();
     
     if (sendButton) {
@@ -456,17 +424,18 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("終了ボタンが見つかりません");
     }
 
+    // アンケート送信ボタンのイベントリスナー
     if (submitSurveyButton) {
         submitSurveyButton.addEventListener("click", submitSurvey);
         console.log("アンケート送信ボタンのリスナーを設定");
     } else {
         console.error("アンケート送信ボタンが見つかりません");
     }
-
 });
 
 // ページロード時の処理
 window.addEventListener('load', () => {
+    console.log("ページロード処理開始");
     if (!document.hidden) {
         getOrCreateSessionId(true);
     }
@@ -476,6 +445,7 @@ window.addEventListener('load', () => {
 // visibility変更時の処理
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
+        console.log("タブがアクティブになりました");
         getOrCreateSessionId(true);
         chatContainer.innerHTML = '';
         loadChatHistory();
@@ -485,6 +455,7 @@ document.addEventListener('visibilitychange', () => {
 // セッションストレージの変更を監視
 window.addEventListener('storage', (event) => {
     if (event.key === SESSION_STORAGE_KEY) {
+        console.log("セッションストレージの変更を検出");
         loadChatHistory();
     }
 });
