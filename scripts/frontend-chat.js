@@ -49,8 +49,8 @@ function saveLocalChatHistory(content, type) {
         });
         
         // 最新6件（3往復分）のみ保持
-        if (history.length > 6) {
-            history = history.slice(-6);
+        if (history.length > 10) {
+            history = history.slice(-10);
         }
         
         localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
