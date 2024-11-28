@@ -230,6 +230,33 @@
     </style>
 </head>
 <body>
+
+
+
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-analytics.js";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+      
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+          apiKey: "AIzaSyACZVcf8cWzcu698PdbKKRVcbStH82lavc",
+          authDomain: "kukutyan-f48ae.firebaseapp.com",
+          projectId: "kukutyan-f48ae",
+          storageBucket: "kukutyan-f48ae.firebasestorage.app",
+          messagingSenderId: "894594120998",
+          appId: "1:894594120998:web:9160722e1d27e98afbd5e7",
+          measurementId: "G-8FSDCGV2M7"
+        };
+      
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+      </script>
     <!-- 同意画面 -->
     <div id="consent-overlay">
         <div id="consent-box">
