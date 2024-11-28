@@ -36,7 +36,8 @@ async function handleConsultation(userMessageData, apiKey) {
 
     // 1. 意図分析
     console.log('\n[1] 意図分析開始');
-    const intentPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に含まれている意図を詳細に分析してください。
+    const intentPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    あなたはカウンセリングの専門家です。以下のユーザーの質問に含まれている意図を詳細に分析してください。
     ユーザーが質問を通じてどのようなサポートやアドバイスを期待しているのかを具体的に説明し、その背景や目的についても考察してください。
     また、質問の背後にある感情や動機についても考え、それがどのようにユーザーの期待や要求に影響を与えているかを分析してください。
     最終的に、ユーザーがどのような返答や行動を求めているかを推測してください。
@@ -74,7 +75,8 @@ async function handleConsultation(userMessageData, apiKey) {
 
     // 2. 追加質問の提案
     console.log('\n[2] 追加質問生成開始');
-    const followUpPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に対して以下を分析してください。
+    const followUpPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    あなたはカウンセリングの専門家です。以下のユーザーの質問に対して以下を分析してください。
     ユーザーの質問に対して不足している環境や行動に関する情報を特定し、以下の点を踏まえつつ重要と判断される追加質問を2~3個提案してください。
     具体的に、ユーザーが提供していないが必要となる詳細な情報を特定し、それに基づいて質問を作成してください。
 
