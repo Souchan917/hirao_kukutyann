@@ -1,5 +1,7 @@
 // libs/firebase.js
-import { initializeApp } from 'firebase/app';
+
+// Firebaseのインポート
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { 
     getFirestore, 
     collection, 
@@ -8,7 +10,7 @@ import {
     where,
     orderBy,
     getDocs 
-} from 'firebase/firestore';
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // Firebase設定
 const firebaseConfig = {
