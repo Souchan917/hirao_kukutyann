@@ -268,30 +268,32 @@ function resetChat() {
     }
 }
 
-// 評価ボタンのセットアップ関数
+// setupRatingButtons 関数を修正
 function setupRatingButtons() {
+    // 評価カテゴリーの定義
     const ratingGroups = [
-        { element: surveyForm.querySelector('div[aria-label="満足度"]'), category: 'satisfaction' },
-        { element: surveyForm.querySelector('div[aria-label="個別化された回答"]'), category: 'personalization' },
-        { element: surveyForm.querySelector('div[aria-label="比較"]'), category: 'comparison' },
-        { element: surveyForm.querySelector('div[aria-label="意図の理解"]'), category: 'intention' }
+        { buttons: surveyForm.querySelector('div[aria-label="満足度"]').querySelectorAll('strong'), category: 'satisfaction' },
+        { buttons: surveyForm.querySelector('div[aria-label="個別化された回答"]').querySelectorAll('strong'), category: 'personalization' },
+        { buttons: surveyForm.querySelector('div[aria-label="比較"]').querySelectorAll('strong'), category: 'comparison' },
+        { buttons: surveyForm.querySelector('div[aria-label="意図の理解"]').querySelectorAll('strong'), category: 'intention' }
     ];
 
     ratingGroups.forEach(group => {
-        const buttons = group.element.querySelectorAll('strong');
-        buttons.forEach((button, index) => {
-            button.style.cursor = 'pointer';
+        Array.from(group.buttons).forEach((button, index) => {
             button.addEventListener('click', () => {
-                buttons.forEach(btn => {
+                // 同じカテゴリの他のボタンから選択を解除
+                Array.from(group.buttons).forEach(btn => {
                     btn.classList.remove('selected');
                     btn.style.backgroundColor = '';
                 });
                 
+                // クリックされたボタンを選択状態に
                 button.classList.add('selected');
                 button.style.backgroundColor = '#e3f2fd';
                 
+                // 回答を保存（インデックスは1から始まる）
                 surveyAnswers[group.category] = index + 1;
-                console.log(`${group.category}の評価を更新:`, index + 1);
+                console.log(`${group.category}の評価を更新:`, surveyAnswers[group.category]);
             });
         });
     });
@@ -310,11 +312,12 @@ function endChat() {
     surveyForm.scrollIntoView({ behavior: 'smooth' });
 }
 
-// アンケート送信関数
+// submitSurvey 関数も修正
 async function submitSurvey(event) {
     event.preventDefault();
-    console.log("アンケート送信処理を開始", surveyAnswers);
+    console.log("送信前の surveyAnswers:", surveyAnswers);
 
+    // バリデーション
     const unansweredCategories = Object.entries(surveyAnswers)
         .filter(([_, value]) => value === 0)
         .map(([key, _]) => {
@@ -339,22 +342,19 @@ async function submitSurvey(event) {
         const sessionId = getOrCreateSessionId();
         const surveyData = {
             timestamp: new Date().toISOString(),
-            answers: {
-                satisfaction: surveyAnswers.satisfaction,
-                personalization: surveyAnswers.personalization,
-                comparison: surveyAnswers.comparison,
-                intention: surveyAnswers.intention
-            },
+            answers: { ...surveyAnswers }, // オブジェクトをコピー
             sessionId: sessionId
         };
 
+        console.log("送信するデータ:", surveyData);
         await saveMessage(JSON.stringify(surveyData), "survey", sessionId);
+        
         alert("アンケートにご協力いただき、ありがとうございました。");
         resetSurveyUI();
         
     } catch (error) {
         console.error("アンケート送信エラー:", error);
-        alert("アンケートの送信に失敗しました。もう一度お試しください。");
+        alert("送信に失敗しました。もう一度お試しください。");
     } finally {
         submitSurveyButton.disabled = false;
         submitSurveyButton.textContent = 'アンケートを送信';
