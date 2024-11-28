@@ -255,59 +255,43 @@ function resetChat() {
     }
 }
 
-// 評価ボタンのセットアップ関数を修正
+// 最初に既存の setupRatingButtons の定義をすべて削除し、以下の実装だけを使用します
+
 function setupRatingButtons() {
     console.log("評価ボタンのセットアップを開始");
 
-    const ratingGroups = [
-        { name: 'satisfaction', label: '満足度', buttons: document.querySelectorAll('div[aria-label="満足度"] strong') },
-        { name: 'personalization', label: '個別化された回答', buttons: document.querySelectorAll('div[aria-label="個別化された回答"] strong') },
-        { name: 'comparison', label: '比較', buttons: document.querySelectorAll('div[aria-label="比較"] strong') },
-        { name: 'intention', label: '意図の理解', buttons: document.querySelectorAll('div[aria-label="意図の理解"] strong') }
+    // それぞれのボタングループを定義
+    const buttonGroups = [
+        { buttons: satisfactionButtons, name: 'satisfaction' },
+        { buttons: personalizedButtons, name: 'personalization' },
+        { buttons: comparisonButtons, name: 'comparison' },
+        { buttons: intentionButtons, name: 'intention' }
     ];
 
-    ratingGroups.forEach(group => {
-        if (!group.buttons.length) {
-            console.error(`${group.label}のボタンが見つかりません`);
-            return;
-        }
-
-        group.buttons.forEach((button, index) => {
-            // スタイリングを追加
+    buttonGroups.forEach(group => {
+        Array.from(group.buttons).forEach((button, index) => {
+            // スタイリング
             button.style.cursor = 'pointer';
             button.style.padding = '8px';
             button.style.borderRadius = '4px';
-            button.style.transition = 'all 0.2s ease';
-            button.style.display = 'inline-block';
+            button.style.transition = 'background-color 0.3s ease';
 
-            // クリックイベントを追加
-            button.onclick = () => {
+            // クリックイベント
+            button.onclick = function() {
                 // 同じグループの他のボタンをリセット
-                group.buttons.forEach(b => {
+                Array.from(group.buttons).forEach(b => {
                     b.style.backgroundColor = '';
-                    b.style.color = '';
+                    b.classList.remove('selected');
                 });
 
-                // 選択されたボタンのスタイルを変更
-                button.style.backgroundColor = '#e3f2fd';
-                button.style.color = '#1976d2';
+                // クリックされたボタンをハイライト
+                this.style.backgroundColor = '#e3f2fd';
+                this.classList.add('selected');
 
-                // 回答を保存
+                // 選択値を保存
                 surveyAnswers[group.name] = index + 1;
-                console.log(`${group.label}の評価を更新:`, index + 1);
+                console.log(`${group.name}の評価を更新:`, index + 1);
                 console.log('現在の回答状態:', surveyAnswers);
-            };
-
-            // ホバーエフェクト
-            button.onmouseover = () => {
-                if (!surveyAnswers[group.name] === index + 1) {
-                    button.style.backgroundColor = '#f5f5f5';
-                }
-            };
-            button.onmouseout = () => {
-                if (!surveyAnswers[group.name] === index + 1) {
-                    button.style.backgroundColor = '';
-                }
             };
         });
     });
@@ -400,63 +384,23 @@ function resetSurveyUI() {
     getOrCreateSessionId(true);
 }
 
-// チャット履歴読み込み関数
-async function loadChatHistory() {
-    const sessionId = getOrCreateSessionId();
-    try {
-        console.log("チャット履歴を読み込み中...");
-        const history = await getChatHistory(sessionId);
-
-        if (history && history.length > 0) {
-            history.forEach(message => {
-                if (message.type !== 'rating' && message.type !== 'survey') {
-                    addMessage(message.content, message.type);
-                }
-            });
-        }
-    } catch (error) {
-        console.error("チャット履歴の読み込みエラー:", error);
-    }
-}
-
-// イベントリスナーの設定
+// DOMContentLoadedイベントの処理を修正
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOMContentLoaded イベント発火");
+    console.log("DOMContentLoaded: イベントリスナーの設定を開始");
+    
+    // 評価ボタンのセットアップ
     setupRatingButtons();
     
-    if (sendButton) {
-        sendButton.addEventListener("click", sendMessage);
-        console.log("送信ボタンのリスナーを設定");
-    }
-
-    if (resetButton) {
-        resetButton.addEventListener("click", resetChat);
-        console.log("リセットボタンのリスナーを設定");
-    }
-
-    if (questionInput) {
-        questionInput.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") {
-                sendMessage();
-            }
-        });
-        console.log("入力フィールドのリスナーを設定");
-    }
-
-    if (endChatButton) {
-        endChatButton.addEventListener("click", endChat);
-        console.log("終了ボタンのリスナーを設定");
-    } else {
-        console.error("終了ボタンが見つかりません");
-    }
-
     // アンケート送信ボタンのイベントリスナー
     if (submitSurveyButton) {
-        submitSurveyButton.addEventListener("click", submitSurvey);
+        submitSurveyButton.addEventListener("click", function(event) {
+            event.preventDefault();
+            submitSurvey(event);
+        });
         console.log("アンケート送信ボタンのリスナーを設定");
-    } else {
-        console.error("アンケート送信ボタンが見つかりません");
     }
+    
+    console.log("イベントリスナーの設定完了");
 });
 
 // ページロード時の処理
