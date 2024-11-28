@@ -285,15 +285,19 @@ function resetChat() {
     }
 }
 
-// 評価ボタンのセットアップ関数
+// 評価ボタンのセットアップ関数を改善
 function setupRatingButtons(buttons, category) {
     buttons.forEach((button, index) => {
         button.addEventListener('click', () => {
-            console.log(`${category}の評価がクリックされました:`, index + 1);
+            // 同じカテゴリーの他のボタンから選択を解除
             buttons.forEach(btn => btn.classList.remove('selected'));
+            
+            // クリックされたボタンを選択状態に
             button.classList.add('selected');
+            
+            // 回答を保存
             surveyAnswers[category] = index + 1;
-            console.log("現在の評価状態:", surveyAnswers);
+            console.log(`${category}の評価を更新:`, index + 1);
         });
     });
 }
@@ -320,33 +324,38 @@ function endChat() {
     console.log("アンケートフォームを表示し、チャット終了処理を完了");
 }
 
-// アンケート送信関数
+// アンケート送信関数を改善
 async function submitSurvey(event) {
     event.preventDefault();
     console.log("アンケート送信処理を開始", surveyAnswers);
 
+    // 未回答項目のチェック
     if (Object.values(surveyAnswers).some(value => value === 0)) {
         alert("すべての項目にお答えください。");
         return;
     }
 
     try {
-        console.log("Firebaseにアンケート回答を保存中...");
         const sessionId = getOrCreateSessionId();
-        await saveMessage(JSON.stringify(surveyAnswers), "survey", sessionId);
+        const surveyData = {
+            timestamp: new Date().toISOString(),
+            answers: surveyAnswers
+        };
+
+        await saveMessage(JSON.stringify(surveyData), "survey", sessionId);
         
         alert("アンケートにご協力いただき、ありがとうございました。");
         
-        // UIをリセット
+        // UIリセット
         surveyForm.style.display = 'none';
         chatContainer.innerHTML = '';
         questionInput.disabled = false;
         sendButton.disabled = false;
         
-        // 新しいセッションIDを生成
+        // 新しいセッションの開始
         getOrCreateSessionId(true);
         
-        // 回答をリセット
+        // 回答のリセット
         surveyAnswers = {
             satisfaction: 0,
             personalization: 0,
@@ -355,18 +364,14 @@ async function submitSurvey(event) {
         };
         
         // 選択状態をリセット
-        document.querySelectorAll('.btn-group strong.selected').forEach(button => {
-            button.classList.remove('selected');
-        });
-        
-        console.log("アンケート送信処理が完了し、UIをリセットしました");
+        document.querySelectorAll('.btn-group strong.selected')
+            .forEach(button => button.classList.remove('selected'));
         
     } catch (error) {
         console.error("アンケート送信エラー:", error);
         alert("アンケートの送信に失敗しました。もう一度お試しください。");
     }
 }
-
 
 
     // チャット履歴読み込み関数
