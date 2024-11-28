@@ -14,10 +14,11 @@ const surveyForm = document.getElementById("survey-form");
 const submitSurveyButton = document.getElementById("submitSurvey");
 
 // 評価ボタングループの取得
-const satisfactionButtons = surveyForm.querySelector('div[aria-label="満足度"]').querySelectorAll('strong');
-const personalizedButtons = surveyForm.querySelector('div[aria-label="個別化された回答"]').querySelectorAll('strong');
-const comparisonButtons = surveyForm.querySelector('div[aria-label="比較"]').querySelectorAll('strong');
-const intentionButtons = surveyForm.querySelector('div[aria-label="意図の理解"]').querySelectorAll('strong');
+// DOM要素の取得部分を修正
+const satisfactionButtons = surveyForm.querySelectorAll('input[name="satisfaction"]');
+const personalizedButtons = surveyForm.querySelectorAll('input[name="personalization"]');
+const comparisonButtons = surveyForm.querySelectorAll('input[name="comparison"]');
+const intentionButtons = surveyForm.querySelectorAll('input[name="intention"]');
 
 // セッション管理用の定数
 const SESSION_STORAGE_KEY = 'kukuchan_session_id';
@@ -257,42 +258,31 @@ function resetChat() {
 
 // 最初に既存の setupRatingButtons の定義をすべて削除し、以下の実装だけを使用します
 
+// setupRatingButtons 関数を修正
 function setupRatingButtons() {
     console.log("評価ボタンのセットアップを開始");
 
-    // それぞれのボタングループを定義
     const buttonGroups = [
-        { buttons: satisfactionButtons, name: 'satisfaction' },
-        { buttons: personalizedButtons, name: 'personalization' },
-        { buttons: comparisonButtons, name: 'comparison' },
-        { buttons: intentionButtons, name: 'intention' }
+        { buttons: satisfactionButtons, name: 'satisfaction', label: '満足度' },
+        { buttons: personalizedButtons, name: 'personalization', label: '個別化された回答' },
+        { buttons: comparisonButtons, name: 'comparison', label: '比較' },
+        { buttons: intentionButtons, name: 'intention', label: '意図の理解' }
     ];
 
     buttonGroups.forEach(group => {
-        Array.from(group.buttons).forEach((button, index) => {
-            // スタイリング
-            button.style.cursor = 'pointer';
-            button.style.padding = '8px';
-            button.style.borderRadius = '4px';
-            button.style.transition = 'background-color 0.3s ease';
-
-            // クリックイベント
-            button.onclick = function() {
-                // 同じグループの他のボタンをリセット
-                Array.from(group.buttons).forEach(b => {
-                    b.style.backgroundColor = '';
-                    b.classList.remove('selected');
-                });
-
-                // クリックされたボタンをハイライト
-                this.style.backgroundColor = '#e3f2fd';
-                this.classList.add('selected');
-
-                // 選択値を保存
-                surveyAnswers[group.name] = index + 1;
-                console.log(`${group.name}の評価を更新:`, index + 1);
+        group.buttons.forEach(button => {
+            button.addEventListener('change', function() {
+                // 値を保存（ラジオボタンの値は1から5）
+                surveyAnswers[group.name] = parseInt(this.value);
+                console.log(`${group.label}の評価を更新:`, surveyAnswers[group.name]);
                 console.log('現在の回答状態:', surveyAnswers);
-            };
+
+                // 選択されたラベルをハイライト
+                const labels = document.querySelectorAll(`label[for="${this.id}"]`);
+                labels.forEach(label => {
+                    label.style.backgroundColor = '#e3f2fd';
+                });
+            });
         });
     });
 }
