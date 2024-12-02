@@ -19,10 +19,18 @@ const satisfactionButtons = surveyForm.querySelectorAll('input[name="satisfactio
 const personalizedButtons = surveyForm.querySelectorAll('input[name="personalization"]');
 const comparisonButtons = surveyForm.querySelectorAll('input[name="comparison"]');
 const intentionButtons = surveyForm.querySelectorAll('input[name="intention"]');
+const ageButtons = surveyForm.querySelectorAll('input[name="age"]');
+const genderButtons = surveyForm.querySelectorAll('input[name="gender"]');
+const occupationButtons = surveyForm.querySelectorAll('input[name="occupation"]');
+const experienceButtons = surveyForm.querySelectorAll('input[name="experience"]');
+const feedbackTextarea = document.getElementById('feedback');
 
 // セッション管理用の定数
 const SESSION_STORAGE_KEY = 'kukuchan_session_id';
 const CHAT_HISTORY_KEY = 'kukuchan_chat_history';
+
+// メッセージ評価の状態管理
+let lastMessageEvaluated = true;  // メッセージ評価状態の追跡
 
 // 状態管理
 let isSubmitting = false;
@@ -30,8 +38,15 @@ let surveyAnswers = {
     satisfaction: 0,
     personalization: 0,
     comparison: 0,
-    intention: 0
+    intention: 0,
+    age: 0,
+    gender: '',
+    occupation: '',
+    experience: '',
+    feedback: ''
 };
+
+
 
 // ローカルストレージ関連の関数
 function saveLocalChatHistory(content, type) {
@@ -110,6 +125,7 @@ function addMessage(content, type) {
     saveLocalChatHistory(content, type);
 
     if (type === "ai") {
+        lastMessageEvaluated = false; // AI応答時に評価状態をリセット
         const ratingContainer = createRatingContainer();
         const ratingText = createRatingText();
         const buttonsContainer = createButtonsContainer();
@@ -120,6 +136,10 @@ function addMessage(content, type) {
         ratingContainer.appendChild(ratingText);
         ratingContainer.appendChild(buttonsContainer);
         chatContainer.appendChild(ratingContainer);
+
+        // 入力を無効化
+        questionInput.disabled = true;
+        sendButton.disabled = true;
     }
 
     chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -138,6 +158,13 @@ function createRatingContainer() {
     `;
     return container;
 }
+
+
+
+
+
+
+
 
 function createRatingText() {
     const text = document.createElement("div");
@@ -198,6 +225,23 @@ function createRatingButtons() {
     return { goodBtn, badBtn };
 }
 
+function createMinimizedRating(rating) {
+    const container = document.createElement("div");
+    container.style.cssText = `
+        text-align: right;
+        margin: 5px 0;
+        font-size: 0.8rem;
+        color: ${rating === 'good' ? '#34a853' : '#ea4335'};
+    `;
+
+    const icon = document.createElement("span");
+    icon.innerHTML = rating === 'good' ? '👍' : '👎';
+    icon.style.fontSize = '0.8rem';
+    
+    container.appendChild(icon);
+    return container;
+}
+
 function setupRatingButtonEvents(goodBtn, badBtn) {
     const content = chatContainer.lastElementChild.textContent;
 
@@ -212,8 +256,10 @@ function setupRatingButtonEvents(goodBtn, badBtn) {
 
 // メッセージ送信関数
 async function sendMessage() {
-    if (isSubmitting) {
-        console.log("送信中のため処理をスキップします");
+    if (isSubmitting || !lastMessageEvaluated) {
+        if (!lastMessageEvaluated) {
+            alert("前の回答の評価をお願いします。");
+        }
         return;
     }
 
@@ -267,11 +313,11 @@ async function sendMessage() {
         addMessage("エラーが発生しました。後でもう一度お試しください。", "ai");
     } finally {
         isSubmitting = false;
-        questionInput.disabled = false;
-        sendButton.disabled = false;
         questionInput.value = "";
+        // 注意: ここではinput/buttonを有効化しない（評価待ち）
     }
 }
+
 
 // 評価処理関数
 async function handleRating(rating, content, activeBtn, inactiveBtn) {
@@ -284,17 +330,16 @@ async function handleRating(rating, content, activeBtn, inactiveBtn) {
         }), "rating", sessionId);
         
         const container = activeBtn.closest('.rating-container');
-        const ratingText = container.querySelector('div');
         
-        activeBtn.style.backgroundColor = rating === 'good' ? '#e6f4ea' : '#fce8e6';
-        activeBtn.style.borderColor = rating === 'good' ? '#34a853' : '#ea4335';
-        activeBtn.style.color = rating === 'good' ? '#34a853' : '#ea4335';
-        inactiveBtn.style.opacity = '0.5';
-        activeBtn.disabled = true;
-        inactiveBtn.disabled = true;
+        // 評価コンテナを最小化したものに置き換え
+        const minimizedRating = createMinimizedRating(rating);
+        container.parentNode.replaceChild(minimizedRating, container);
         
-        ratingText.textContent = "評価ありがとうございます";
-        ratingText.style.color = rating === 'good' ? '#34a853' : '#ea4335';
+        // 入力を有効化
+        lastMessageEvaluated = true;
+        questionInput.disabled = false;
+        sendButton.disabled = false;
+        
     } catch (error) {
         console.error("評価保存エラー:", error);
         alert("評価の保存に失敗しました。もう一度お試しください。");
@@ -322,68 +367,28 @@ function setupRatingButtons() {
         { buttons: satisfactionButtons, name: 'satisfaction', label: '満足度' },
         { buttons: personalizedButtons, name: 'personalization', label: '個別化された回答' },
         { buttons: comparisonButtons, name: 'comparison', label: '比較' },
-        { buttons: intentionButtons, name: 'intention', label: '意図の理解' }
+        { buttons: intentionButtons, name: 'intention', label: '意図の理解' },
+        { buttons: ageButtons, name: 'age', label: '年代' },
+        { buttons: genderButtons, name: 'gender', label: '性別' },
+        { buttons: occupationButtons, name: 'occupation', label: '職業' },
+        { buttons: experienceButtons, name: 'experience', label: '経験年数' }
     ];
-
-    const selectedStyle = {
-        backgroundColor: '#2196f3',
-        color: 'white',
-        borderColor: '#1976d2',
-        fontWeight: 'bold',
-    };
-
-    const defaultStyle = {
-        backgroundColor: 'white',
-        color: '#333',
-        borderColor: '#dee2e6',
-        fontWeight: 'normal'
-    };
 
     buttonGroups.forEach(group => {
         group.buttons.forEach(button => {
             button.addEventListener('change', function() {
-                surveyAnswers[group.name] = parseInt(this.value);
+                surveyAnswers[group.name] = this.value;
                 console.log(`${group.label}の評価を更新:`, surveyAnswers[group.name]);
-
-                const allLabels = document.querySelectorAll(`label[for^="${group.name}"]`);
-                allLabels.forEach(label => {
-                    Object.assign(label.style, defaultStyle);
-                    label.classList.remove('selected');
-                });
-
-                const selectedLabel = document.querySelector(`label[for="${this.id}"]`);
-                if (selectedLabel) {
-                    Object.assign(selectedLabel.style, selectedStyle);
-                    selectedLabel.classList.add('selected');
-
-                    selectedLabel.addEventListener('mouseover', () => {
-                        selectedLabel.style.backgroundColor = '#1976d2';
-                    });
-                    selectedLabel.addEventListener('mouseout', () => {
-                        if (selectedLabel.classList.contains('selected')) {
-                            selectedLabel.style.backgroundColor = selectedStyle.backgroundColor;
-                        }
-                    });
-                }
-            });
-        });
-
-        const labels = document.querySelectorAll(`label[for^="${group.name}"]`);
-        labels.forEach(label => {
-            Object.assign(label.style, defaultStyle);
-            
-            label.addEventListener('mouseover', () => {
-                if (!label.classList.contains('selected')) {
-                    label.style.backgroundColor = '#f8f9fa';
-                }
-            });
-            label.addEventListener('mouseout', () => {
-                if (!label.classList.contains('selected')) {
-                    label.style.backgroundColor = defaultStyle.backgroundColor;
-                }
             });
         });
     });
+
+    // フィードバックテキストエリアのイベントリスナー
+    if (feedbackTextarea) {
+        feedbackTextarea.addEventListener('input', function() {
+            surveyAnswers.feedback = this.value.trim();
+        });
+    }
 }
 
 async function submitSurvey(event) {
@@ -395,6 +400,10 @@ async function submitSurvey(event) {
     if (surveyAnswers.personalization === 0) unansweredCategories.push('個別化された回答');
     if (surveyAnswers.comparison === 0) unansweredCategories.push('比較');
     if (surveyAnswers.intention === 0) unansweredCategories.push('意図の理解');
+    if (surveyAnswers.age === 0) unansweredCategories.push('年代');
+    if (!surveyAnswers.gender) unansweredCategories.push('性別');
+    if (!surveyAnswers.occupation) unansweredCategories.push('職業');
+    if (!surveyAnswers.experience) unansweredCategories.push('経験年数');
 
     if (unansweredCategories.length > 0) {
         const message = `以下の項目が未回答です：\n${unansweredCategories.join('\n')}`;
@@ -414,7 +423,12 @@ async function submitSurvey(event) {
                 satisfaction: surveyAnswers.satisfaction,
                 personalization: surveyAnswers.personalization,
                 comparison: surveyAnswers.comparison,
-                intention: surveyAnswers.intention
+                intention: surveyAnswers.intention,
+                age: surveyAnswers.age,
+                gender: surveyAnswers.gender,
+                occupation: surveyAnswers.occupation,
+                experience: surveyAnswers.experience,
+                feedback: surveyAnswers.feedback
             },
             sessionId: sessionId
         };
@@ -447,11 +461,21 @@ function resetSurveyUI() {
         button.style.backgroundColor = '';
     });
 
+    // フィードバックテキストエリアのリセット
+    if (feedbackTextarea) {
+        feedbackTextarea.value = '';
+    }
+
     surveyAnswers = {
         satisfaction: 0,
         personalization: 0,
         comparison: 0,
-        intention: 0
+        intention: 0,
+        age: 0,
+        gender: '',
+        occupation: '',
+        experience: '',
+        feedback: ''
     };
 
     getOrCreateSessionId(true);
@@ -462,6 +486,7 @@ function resetChat() {
         chatContainer.innerHTML = "";
         clearLocalChatHistory();
         getOrCreateSessionId(true);
+        lastMessageEvaluated = true; // 評価状態もリセット
     }
 }
 

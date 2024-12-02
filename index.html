@@ -258,15 +258,17 @@
       
       <div id="main-content">
         <div class="container-lg">
-          <nav class="navbar">
-            <span class="navbar-brand">子育てAI研究 - チャットボット評価システム</span>
-          </nav>
-      
-          <div class="text-center mb-4">
-            <h1 class="mb-3">研究用チャットボットとの対話</h1>
-            <p>本システムは研究目的で運営されています。<br>
-            子育てに関する質問や相談をお気軽にお寄せください。</p>
-          </div>
+            <!-- <nav class="navbar">
+                <span class="navbar-brand">ククちゃん - 子育て支援AIチャットボット研究</span>
+            </nav>
+     -->
+            <div class="text-center mb-4">
+                <h1 class="mb-3">ククちゃんとの対話</h1>
+                <p>
+                    ククちゃんは子育て支援を目的として開発中のAIチャットボットです。<br>
+                    子育てに関する質問や相談をお寄せいただき、システムの評価にご協力ください。
+                </p>
+            </div>
             <div class="row justify-content-center">
                 <div class="col-md-10">
                     <div class="card">
@@ -278,7 +280,7 @@
                             <div class="input-container">
                                 <input type="text" id="questionInput" placeholder="質問を入力してください">
                                 <button id="sendQuestion" class="btn btn-primary">送信</button>
-                                <button id="resetChat" class="btn btn-secondary">リセット</button>
+                                <!-- <button id="resetChat" class="btn btn-secondary">リセット</button> -->
                             </div>
                         </div>
                     </div>
@@ -389,6 +391,114 @@
                             </div>
                         </div>
 
+                        
+                        <!-- 新しい項目を追加 -->
+                        <div class="survey-item mb-4">
+                            <p class="mb-2">5. あなたの年代を教えてください：</p>
+                            <div class="rating-buttons" role="group" aria-label="年代">
+                                <input type="radio" class="btn-check" name="age" id="age1" value="20">
+                                <label class="btn btn-outline-primary" for="age1">20代</label>
+                                
+                                <input type="radio" class="btn-check" name="age" id="age2" value="30">
+                                <label class="btn btn-outline-primary" for="age2">30代</label>
+                                
+                                <input type="radio" class="btn-check" name="age" id="age3" value="40">
+                                <label class="btn btn-outline-primary" for="age3">40代</label>
+                                
+                                <input type="radio" class="btn-check" name="age" id="age4" value="50">
+                                <label class="btn btn-outline-primary" for="age4">50代</label>
+                                
+                                <input type="radio" class="btn-check" name="age" id="age5" value="60">
+                                <label class="btn btn-outline-primary" for="age5">60代</label>
+                            </div>
+                        </div>
+            
+                        <div class="survey-item mb-4">
+                            <p class="mb-2">6. あなたの性別を教えてください：</p>
+                            <div class="rating-buttons" role="group" aria-label="性別">
+                                <input type="radio" class="btn-check" name="gender" id="gender1" value="female">
+                                <label class="btn btn-outline-primary" for="gender1">女性</label>
+                                
+                                <input type="radio" class="btn-check" name="gender" id="gender2" value="male">
+                                <label class="btn btn-outline-primary" for="gender2">男性</label>
+                                
+                                <input type="radio" class="btn-check" name="gender" id="gender3" value="noanswer">
+                                <label class="btn btn-outline-primary" for="gender3">無回答</label>
+                            </div>
+                        </div>
+            
+                        <div class="survey-item mb-4">
+                            <p class="mb-2">7. あなたのお子さんと関わる経験・ご職業を教えてください：</p>
+                            <div class="rating-buttons" role="group" aria-label="職業">
+                                <input type="radio" class="btn-check" name="occupation" id="occ1" value="nursery">
+                                <label class="btn btn-outline-primary" for="occ1">保育士</label>
+                                
+                                <input type="radio" class="btn-check" name="occupation" id="occ2" value="kindergarten">
+                                <label class="btn btn-outline-primary" for="occ2">幼稚園教諭</label>
+                                
+                                <input type="radio" class="btn-check" name="occupation" id="occ3" value="pediatrician">
+                                <label class="btn btn-outline-primary" for="occ3">小児科医</label>
+                                
+                                <input type="radio" class="btn-check" name="occupation" id="occ4" value="nutritionist">
+                                <label class="btn btn-outline-primary" for="occ4">栄養士</label>
+                                
+                                <input type="radio" class="btn-check" name="occupation" id="occ5" value="psychologist">
+                                <label class="btn btn-outline-primary" for="occ5">臨床心理士</label>
+                                
+                                <input type="radio" class="btn-check" name="occupation" id="occ6" value="socialworker">
+                                <label class="btn btn-outline-primary" for="occ6">社会福祉士</label>
+                                
+                                <input type="radio" class="btn-check" name="occupation" id="occ7" value="educator">
+                                <label class="btn btn-outline-primary" for="occ7">教育学者</label>
+                                
+                                <input type="radio" class="btn-check" name="occupation" id="occ8" value="developmental">
+                                <label class="btn btn-outline-primary" for="occ8">発達心理学者</label>
+                                
+                                <input type="radio" class="btn-check" name="occupation" id="occ9" value="support">
+                                <label class="btn btn-outline-primary" for="occ9">子育て支援センターのスタッフ</label>
+                                
+                                <input type="radio" class="btn-check" name="occupation" id="occ10" value="parent">
+                                <label class="btn btn-outline-primary" for="occ10">保護者</label>
+                            </div>
+                        </div>
+            
+                        <div class="survey-item mb-4">
+                            <p class="mb-2">8. 前述で回答いただいた経験・ご職業の継続年数を教えてください：</p>
+                            <div class="rating-buttons" role="group" aria-label="経験年数">
+                                <input type="radio" class="btn-check" name="experience" id="exp1" value="less1">
+                                <label class="btn btn-outline-primary" for="exp1">1年未満</label>
+                                
+                                <input type="radio" class="btn-check" name="experience" id="exp2" value="1year">
+                                <label class="btn btn-outline-primary" for="exp2">1年</label>
+                                
+                                <input type="radio" class="btn-check" name="experience" id="exp3" value="2year">
+                                <label class="btn btn-outline-primary" for="exp3">2年</label>
+                                
+                                <input type="radio" class="btn-check" name="experience" id="exp4" value="3year">
+                                <label class="btn btn-outline-primary" for="exp4">3年</label>
+                                
+                                <input type="radio" class="btn-check" name="experience" id="exp5" value="4to9">
+                                <label class="btn btn-outline-primary" for="exp5">4~9年</label>
+                                
+                                <input type="radio" class="btn-check" name="experience" id="exp6" value="10to14">
+                                <label class="btn btn-outline-primary" for="exp6">10~14年</label>
+                                
+                                <input type="radio" class="btn-check" name="experience" id="exp7" value="15to19">
+                                <label class="btn btn-outline-primary" for="exp7">15~19年</label>
+                                
+                                <input type="radio" class="btn-check" name="experience" id="exp8" value="20to29">
+                                <label class="btn btn-outline-primary" for="exp8">20~29年</label>
+                                
+                                <input type="radio" class="btn-check" name="experience" id="exp9" value="30plus">
+                                <label class="btn btn-outline-primary" for="exp9">30年以上</label>
+                            </div>
+                        </div>
+            
+                        <div class="survey-item mb-4">
+                            <p class="mb-2">9. ご意見・ご感想を自由にお書きください：</p>
+                            <textarea id="feedback" class="form-control" rows="4"></textarea>
+                        </div>
+            
                         <div class="text-center">
                             <button id="submitSurvey" class="btn btn-primary">アンケートを送信</button>
                         </div>
@@ -399,7 +509,7 @@
         <!-- フッター -->
         <footer>
             <div class="container-lg">
-                <p class="mb-0">© 2024 子育てAI相談 - 研究用 | プライバシーポリシー | 利用規約</p>
+                <p class="mb-0"> © 2024 電気通信大学 人工知能先端研究センター</p>
             </div>
         </footer>
     </div>
