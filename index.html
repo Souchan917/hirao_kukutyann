@@ -19,30 +19,35 @@
             top: 0;
             left: 0;
             width: 100%;
-            min-height: 100vh; /* 100vhから変更 */
-            background-color: rgba(0, 0, 0, 0.7);
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;  /* centerから変更 */
             z-index: 1000;
-            display: block;
             overflow-y: auto;
-            padding: 20px 0;
+            padding: 2rem 0;         /* 上下のパディングを追加 */
         }
 
         #consent-box {
-            background-color: white;
+            background: white;
             padding: 2rem;
-            border-radius: 10px;
+            border-radius: 8px;
             max-width: 600px;
-            width: 90%;
-            margin: 20px auto;
-            position: relative;
-            /* max-heightを削除してコンテンツが全て表示されるようにする */
+            width: 100%;
+            margin: auto;           /* 上下のマージンを追加 */
+            margin-top: 0;         /* 上部マージンを0に */
+        }
+        /* コンテンツ部分を包む新しいdivを追加することを推奨 */
+        .consent-content {
+            overflow-y: auto;       /* スクロール可能に */
+            max-height: 60vh;       /* 適度な高さに制限 */
+            padding-right: 1rem;    /* スクロールバー分の余白 */
         }
 
         .consent-button-container {
-            text-align: center;
             margin-top: 2rem;
-            margin-bottom: 1rem; /* 下部にも余白を追加 */
-            width: 100%;
+            text-align: center;
         }
 
         #consent-button {
@@ -54,7 +59,7 @@
         /* モバイル向けの追加調整 */
         @media (max-width: 768px) {
             #consent-overlay {
-                padding-bottom: 40px; /* モバイルでの下部余白を増やす */
+                padding-bottom: 340px; /* モバイルでの下部余白を増やす */
             }
             
             #consent-box {
