@@ -180,7 +180,7 @@ async function handleComplaint(userMessageData, apiKey) {
     ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
     
     以下の情報をもとに、ククちゃんとして、
-    深い共感を示し、気持ちに寄り添う返答を生成してください。
+    共感を示し、気持ちに寄り添う返答を生成してください。
     
     ユーザーの愚痴: '${message}'
     意図の分析: '${intentContent}'
