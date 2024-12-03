@@ -575,14 +575,14 @@ window.addEventListener('load', () => {
 });
 
 // visibility変更時の処理
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-        console.log("タブがアクティブになりました");
-        getOrCreateSessionId(true);
-        chatContainer.innerHTML = '';
-        loadChatHistory();
-    }
-});
+// document.addEventListener('visibilitychange', () => {
+//     if (!document.hidden) {
+//         console.log("タブがアクティブになりました");
+//         getOrCreateSessionId(true);
+//         chatContainer.innerHTML = '';
+//         loadChatHistory();
+//     }
+// });
 
 // セッションストレージの変更を監視
 window.addEventListener('storage', (event) => {
