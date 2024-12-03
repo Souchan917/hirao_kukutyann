@@ -557,26 +557,14 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("イベントリスナーの設定完了");
 });
 
-// ページロード時の処理を修正
+// ページロード時の処理
 window.addEventListener('load', () => {
     console.log("ページロード処理開始");
-    
-    // チャット履歴のローカルストレージを初期化
-    clearLocalChatHistory();
-    console.log("チャット履歴をクリア");
-    
-    // 新しいセッションIDを生成
-    getOrCreateSessionId(true);
-    
-    // チャットコンテナをクリア
-    chatContainer.innerHTML = '';
-    
-    // 評価状態をリセット
-    lastMessageEvaluated = true;
-    
-    console.log("ページロード処理完了");
+    if (!document.hidden) {
+        getOrCreateSessionId(true);
+    }
+    loadChatHistory();
 });
-
 
 // visibility変更時の処理
 document.addEventListener('visibilitychange', () => {
