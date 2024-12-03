@@ -291,51 +291,27 @@ async function handleDiscussion(userMessageData, apiKey) {
 }
 
 // 雑談処理用の関数
-
 async function handleChatting(userMessageData, apiKey) {
     console.log('\n=== 雑談処理開始 ===');
     const { message, conversationHistory } = userMessageData;
 
-    // 1. 意図分析
-    const intentPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
-    あなたは親しみやすい話し相手です。以下のユーザーの発言について分析してください。
-    - どのような話題について話したいのか
-    - どのような気分や雰囲気か
-    - どのような反応を期待しているか
-    - 会話の方向性
-    について分析してください。
-    
-    ユーザーの発言: '${message}'
-    
-    意図の分析: ~~~`;
-
-    const intentContent = await getGPTResponse(intentPrompt, apiKey);
-
-    // 2. 追加質問の生成
-    const followUpPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
-    より楽しい会話を展開するために、確認したい追加の情報について
-    2-3個の自然な質問を提案してください。
-    
-    ユーザーの発言: '${message}'
-    意図の分析: '${intentContent}'
-    
-    追加質問案: ~~~`;
-
-    const followUpContent = await getGPTResponse(followUpPrompt, apiKey);
-
-    // 3. 最終的な回答生成
+    // シンプルな雑談用プロンプト
     const finalPrompt = `${KUKU_PROFILE}
     
     ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
     
-    以下の情報をもとに、ククちゃんとして、
-    親しみやすく自然な会話の流れを作る返答を生成してください。
+    あなたは、優しくて親しみやすい雰囲気の話し相手です。
+    以下のポイントを意識して、自然な会話を展開してください：
+
+    - フレンドリーで温かみのある口調を保つ
+    - 相手の発言に共感を示す
+    - 会話を楽しむ姿勢を見せる
+    - 必要に応じて自分の経験を共有する
+    - 相手の気持ちに寄り添う
     
     ユーザーの発言: '${message}'
-    意図の分析: '${intentContent}'
-    追加で確認したい質問: '${followUpContent}'
     
-    ユーザーへの返答: ~~~`;
+    ククちゃんの返答: ~~~`;
 
     return await getGPTResponse(finalPrompt, apiKey);
 }
