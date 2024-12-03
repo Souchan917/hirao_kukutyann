@@ -92,7 +92,11 @@ function clearLocalChatHistory() {
 
 // セッション管理の関数
 function getOrCreateSessionId(forceNew = false) {
+    // 新しいセッションを強制的に作成する場合
     if (forceNew) {
+        // まずローカルストレージのチャット履歴をクリア
+        clearLocalChatHistory();
+        
         const newSessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         sessionStorage.setItem(SESSION_STORAGE_KEY, newSessionId);
         document.cookie = `sessionId=${newSessionId}; path=/`;
@@ -103,6 +107,9 @@ function getOrCreateSessionId(forceNew = false) {
     let sessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
     
     if (!sessionId) {
+        // 新しいセッションIDが必要な場合も履歴をクリア
+        clearLocalChatHistory();
+        
         sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
         document.cookie = `sessionId=${sessionId}; path=/`;
@@ -560,6 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ページロード時の処理
 window.addEventListener('load', () => {
     console.log("ページロード処理開始");
+    
     if (!document.hidden) {
         getOrCreateSessionId(true);
     }
