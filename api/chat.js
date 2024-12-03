@@ -1,5 +1,3 @@
-// chat.js
-
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -20,157 +18,315 @@ const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククち
 - 長男(ポポちゃん・6歳)と長女(ピピちゃん・2歳)がいます。`;
 
 // 分類用のプロンプト
-const CLASSIFICATION_PROMPT = `以下のユーザーの質問を「相談」「雑談」のいずれかに分類してください。
+const CLASSIFICATION_PROMPT = `以下のユーザーの質問を「相談」「情報」「愚痴」「承認」「議論」「雑談」のいずれかに分類してください。
 
-1. 相談：子育ての悩みや問題についてアドバイスを求める質問
-2. 雑談：その他の一般的な会話や軽い話題
+各分類の説明は次の通りです：
+1. 相談：ユーザーが具体的な問題や困難についてアドバイスや解決策を求めている質問
+2. 情報：ユーザーが具体的な情報、知識、事例を求めている質問
+3. 愚痴：ユーザーがストレスや不満を発散するための質問
+4. 承認：ユーザーが自身の考えや意見を認めてほしい、受け入れてほしいという質問
+5. 議論：ユーザーが特定のテーマについての意見交換や討論を求めている質問
+6. 雑談：ユーザーが気軽な話題や軽い会話を楽しむための質問
 
-回答は「相談」「雑談」のどちらかの1単語のみを返してください。`;
+回答は上記6種類のいずれかの単語のみを返してください。`;
 
 // 相談処理用の関数
 async function handleConsultation(userMessageData, apiKey) {
     console.log('\n=== 相談処理開始 ===');
     const { message, conversationHistory } = userMessageData;
-    console.log('入力メッセージ:', message);
-    console.log('会話履歴:', conversationHistory);
 
     // 1. 意図分析
-    console.log('\n[1] 意図分析開始');
     const intentPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
-    あなたはカウンセリングの専門家です。以下のユーザーの質問に含まれている意図を詳細に分析してください。
-    ユーザーが質問を通じてどのようなサポートやアドバイスを期待しているのかを具体的に説明し、その背景や目的についても考察してください。
-    また、質問の背後にある感情や動機についても考え、それがどのようにユーザーの期待や要求に影響を与えているかを分析してください。
-    最終的に、ユーザーがどのような返答や行動を求めているかを推測してください。
-    この分析を通じて、ユーザーの質問の真の意図と、それに対する最も適切な応答を明確にすることを目指します。
+    あなたはカウンセリングの専門家です。以下のユーザーの相談に含まれている意図を詳細に分析してください。
+    - 主訴は何か
+    - どのような状況で困っているのか
+    - どのような解決を望んでいるのか
+    - 相談の背景にある感情
+    について分析してください。
+    
+    ユーザーの相談: '${message}'
+    
+    意図の分析: ~~~`;
 
+    const intentContent = await getGPTResponse(intentPrompt, apiKey);
+
+    // 2. 追加質問の生成
+    const followUpPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    あなたはカウンセリングの専門家です。この相談をより良く理解し適切なアドバイスをするために、
+    確認すべき追加の情報について2-3個の具体的な質問を提案してください。
+    
+    ユーザーの相談: '${message}'
+    意図の分析: '${intentContent}'
+    
+    追加質問案: ~~~`;
+
+    const followUpContent = await getGPTResponse(followUpPrompt, apiKey);
+
+    // 3. 最終的な回答生成
+    const finalPrompt = `${KUKU_PROFILE}
+    
     ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    
+    あなたはカウンセリングの専門家です。以下の情報をもとに、ククちゃんとして、
+    共感的で具体的な解決策を含む返答を生成してください。
+    
+    ユーザーの相談: '${message}'
+    意図の分析: '${intentContent}'
+    追加で確認したい質問: '${followUpContent}'
+    
+    ユーザーへの返答: ~~~`;
+
+    return await getGPTResponse(finalPrompt, apiKey);
+}
+
+// 情報提供処理用の関数
+async function handleInformation(userMessageData, apiKey) {
+    console.log('\n=== 情報提供処理開始 ===');
+    const { message, conversationHistory } = userMessageData;
+
+    // 1. 意図分析
+    const intentPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    あなたは子育ての専門家です。以下のユーザーの質問について分析してください。
+    - どのような情報を求めているか
+    - その情報をどのように活用したいのか
+    - 情報の詳細度はどの程度求められているか
+    について分析してください。
     
     ユーザーの質問: '${message}'
     
     意図の分析: ~~~`;
-    
-    console.log('意図分析プロンプト:', intentPrompt);
 
-    const intentResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
-            messages: [{ role: 'user', content: intentPrompt }],
-            temperature: 0.7,
-            max_tokens: 200
-        })
-    });
+    const intentContent = await getGPTResponse(intentPrompt, apiKey);
 
-    if (!intentResponse.ok) {
-        throw new Error(`意図分析APIエラー: ${intentResponse.statusText}`);
-    }
-
-    const intentData = await intentResponse.json();
-    const intentContent = intentData.choices[0].message.content.trim();
-    console.log('\n=== 意図分析の生成結果 ===\n', intentContent);
-
-    // 2. 追加質問の提案
-    console.log('\n[2] 追加質問生成開始');
+    // 2. 追加質問の生成
     const followUpPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
-    あなたはカウンセリングの専門家です。以下のユーザーの質問に対して以下を分析してください。
-    ユーザーの質問に対して不足している環境や行動に関する情報を特定し、以下の点を踏まえつつ重要と判断される追加質問を2~3個提案してください。
-    具体的に、ユーザーが提供していないが必要となる詳細な情報を特定し、それに基づいて質問を作成してください。
-
-    ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
-
+    より正確で有用な情報を提供するために、確認すべき追加の情報について
+    2-3個の具体的な質問を提案してください。
+    
     ユーザーの質問: '${message}'
     意図の分析: '${intentContent}'
+    
+    追加質問案: ~~~`;
 
-    追加質問の提案: ~~~`;
-
-    const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
-            messages: [{ role: 'system', content: followUpPrompt }],
-            temperature: 0.7,
-            max_tokens: 200
-        })
-    });
-
-    if (!followUpResponse.ok) {
-        throw new Error(`追加質問生成APIエラー: ${followUpResponse.statusText}`);
-    }
-
-    const followUpData = await followUpResponse.json();
-    const followUpContent = followUpData.choices[0].message.content.trim();
-    console.log('\n=== 追加質問の生成結果 ===\n', followUpContent);
+    const followUpContent = await getGPTResponse(followUpPrompt, apiKey);
 
     // 3. 最終的な回答生成
-    console.log('\n[3] 最終回答生成開始');
     const finalPrompt = `${KUKU_PROFILE}
-
+    
     ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
-
-    以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
-    また、ユーザーが提供した情報に基づいて具体的なアドバイスを行い、必要な場合は追加の質問をしてください。
-
+    
+    以下の情報をもとに、ククちゃんとして、
+    わかりやすく正確な情報提供を含む返答を生成してください。
+    
     ユーザーの質問: '${message}'
     意図の分析: '${intentContent}'
-    追加の質問提案: ${followUpContent}
-
+    追加で確認したい質問: '${followUpContent}'
+    
     ユーザーへの返答: ~~~`;
 
-    const finalResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
-            messages: [{ role: 'system', content: finalPrompt }],
-            temperature: 0.7,
-            max_tokens: 400
-        })
-    });
+    return await getGPTResponse(finalPrompt, apiKey);
+}
 
-    if (!finalResponse.ok) {
-        throw new Error(`最終回答生成APIエラー: ${finalResponse.statusText}`);
-    }
+// 愚痴処理用の関数
+async function handleComplaint(userMessageData, apiKey) {
+    console.log('\n=== 愚痴処理開始 ===');
+    const { message, conversationHistory } = userMessageData;
 
-    const finalData = await finalResponse.json();
-    const finalContent = finalData.choices[0].message.content.trim();
-    console.log('\n=== 最終回答の生成結果 ===\n', finalContent);
-    console.log('=== 相談処理完了 ===\n');
+    // 1. 意図分析
+    const intentPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    あなたは共感的なカウンセラーです。以下のユーザーの愚痴について分析してください。
+    - どのような状況で困っているのか
+    - どのような感情を抱いているのか
+    - なぜそのような感情を抱くのか
+    - どのような反応を期待しているのか
+    について分析してください。
+    
+    ユーザーの愚痴: '${message}'
+    
+    意図の分析: ~~~`;
 
-    return finalContent;
+    const intentContent = await getGPTResponse(intentPrompt, apiKey);
+
+    // 2. 追加質問の生成
+    const followUpPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    ユーザーの感情をより深く理解し、適切な共感を示すために、
+    確認すべき追加の情報について2-3個の質問を提案してください。
+    
+    ユーザーの愚痴: '${message}'
+    意図の分析: '${intentContent}'
+    
+    追加質問案: ~~~`;
+
+    const followUpContent = await getGPTResponse(followUpPrompt, apiKey);
+
+    // 3. 最終的な回答生成
+    const finalPrompt = `${KUKU_PROFILE}
+    
+    ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    
+    以下の情報をもとに、ククちゃんとして、
+    深い共感を示し、気持ちに寄り添う返答を生成してください。
+    
+    ユーザーの愚痴: '${message}'
+    意図の分析: '${intentContent}'
+    追加で確認したい質問: '${followUpContent}'
+    
+    ユーザーへの返答: ~~~`;
+
+    return await getGPTResponse(finalPrompt, apiKey);
+}
+
+// 承認処理用の関数
+async function handleApproval(userMessageData, apiKey) {
+    console.log('\n=== 承認処理開始 ===');
+    const { message, conversationHistory } = userMessageData;
+
+    // 1. 意図分析
+    const intentPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    あなたは肯定的なカウンセラーです。以下のユーザーの発言について分析してください。
+    - どのような行動や考えの承認を求めているか
+    - なぜ承認を求めているのか
+    - どの部分に自信が持てていないのか
+    - どのような反応を期待しているのか
+    について分析してください。
+    
+    ユーザーの発言: '${message}'
+    
+    意図の分析: ~~~`;
+
+    const intentContent = await getGPTResponse(intentPrompt, apiKey);
+
+    // 2. 追加質問の生成
+    const followUpPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    ユーザーの努力や工夫をより具体的に理解し、適切な承認を行うために、
+    確認すべき追加の情報について2-3個の質問を提案してください。
+    
+    ユーザーの発言: '${message}'
+    意図の分析: '${intentContent}'
+    
+    追加質問案: ~~~`;
+
+    const followUpContent = await getGPTResponse(followUpPrompt, apiKey);
+
+    // 3. 最終的な回答生成
+    const finalPrompt = `${KUKU_PROFILE}
+    
+    ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    
+    以下の情報をもとに、ククちゃんとして、
+    ユーザーの行動や考えを具体的に認め、自信を持てるような返答を生成してください。
+    
+    ユーザーの発言: '${message}'
+    意図の分析: '${intentContent}'
+    追加で確認したい質問: '${followUpContent}'
+    
+    ユーザーへの返答: ~~~`;
+
+    return await getGPTResponse(finalPrompt, apiKey);
+}
+
+// 議論処理用の関数
+async function handleDiscussion(userMessageData, apiKey) {
+    console.log('\n=== 議論処理開始 ===');
+    const { message, conversationHistory } = userMessageData;
+
+    // 1. 意図分析
+    const intentPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    あなたは建設的な議論を導くファシリテーターです。以下のユーザーの発言について分析してください。
+    - 議論したいテーマは何か
+    - なぜそのテーマについて議論したいのか
+    - どのような視点からの意見を求めているか
+    - どのような結論を期待しているか
+    について分析してください。
+    
+    ユーザーの発言: '${message}'
+    
+    意図の分析: ~~~`;
+
+    const intentContent = await getGPTResponse(intentPrompt, apiKey);
+
+    // 2. 追加質問の生成
+    const followUpPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    より建設的な議論を行うために、確認すべき追加の情報について
+    2-3個の具体的な質問を提案してください。
+    
+    ユーザーの発言: '${message}'
+    意図の分析: '${intentContent}'
+    
+    追加質問案: ~~~`;
+
+    const followUpContent = await getGPTResponse(followUpPrompt, apiKey);
+
+    // 3. 最終的な回答生成
+    const finalPrompt = `${KUKU_PROFILE}
+    
+    ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    
+    以下の情報をもとに、ククちゃんとして、
+    多角的な視点を提供しつつ、建設的な議論を促す返答を生成してください。
+    
+    ユーザーの発言: '${message}'
+    意図の分析: '${intentContent}'
+    追加で確認したい質問: '${followUpContent}'
+    
+    ユーザーへの返答: ~~~`;
+
+    return await getGPTResponse(finalPrompt, apiKey);
 }
 
 // 雑談処理用の関数
+
 async function handleChatting(userMessageData, apiKey) {
     console.log('\n=== 雑談処理開始 ===');
     const { message, conversationHistory } = userMessageData;
-    console.log('入力メッセージ:', message);
-    console.log('会話履歴:', conversationHistory);
 
-    // 1. 追加質問の提案
-    console.log('\n[1] 追加質問生成開始');
-    const followUpPrompt = `あなたはカウンセリングの専門家です。以下のユーザーの質問に含まれている意図を詳細に分析してください。
-    ユーザーの質問に対して不足している環境や行動に関する情報を特定し、以下の点を踏まえつつ重要と判断される追加質問を2~3個提案してください。
-    質問の背景理解：質問の主な内容と関連する問題点を把握します。
-    不足情報の特定：環境要因、行動パターン、観測可能な変数など、欠けている重要情報を特定します。
+    // 1. 意図分析
+    const intentPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    あなたは親しみやすい話し相手です。以下のユーザーの発言について分析してください。
+    - どのような話題について話したいのか
+    - どのような気分や雰囲気か
+    - どのような反応を期待しているか
+    - 会話の方向性
+    について分析してください。
+    
+    ユーザーの発言: '${message}'
+    
+    意図の分析: ~~~`;
 
+    const intentContent = await getGPTResponse(intentPrompt, apiKey);
+
+    // 2. 追加質問の生成
+    const followUpPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    より楽しい会話を展開するために、確認したい追加の情報について
+    2-3個の自然な質問を提案してください。
+    
+    ユーザーの発言: '${message}'
+    意図の分析: '${intentContent}'
+    
+    追加質問案: ~~~`;
+
+    const followUpContent = await getGPTResponse(followUpPrompt, apiKey);
+
+    // 3. 最終的な回答生成
+    const finalPrompt = `${KUKU_PROFILE}
+    
     ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    
+    以下の情報をもとに、ククちゃんとして、
+    親しみやすく自然な会話の流れを作る返答を生成してください。
+    
+    ユーザーの発言: '${message}'
+    意図の分析: '${intentContent}'
+    追加で確認したい質問: '${followUpContent}'
+    
+    ユーザーへの返答: ~~~`;
 
-    ユーザーの質問: '${message}'
+    return await getGPTResponse(finalPrompt, apiKey);
+}
 
-    追加質問の提案: ~~~`;
-
-    const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+// 共通のGPT応答取得関数
+async function getGPTResponse(prompt, apiKey) {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -178,58 +334,18 @@ async function handleChatting(userMessageData, apiKey) {
         },
         body: JSON.stringify({
             model: 'gpt-3.5-turbo',
-            messages: [{ role: 'system', content: followUpPrompt }],
+            messages: [{ role: 'user', content: prompt }],
             temperature: 0.7,
             max_tokens: 200
         })
     });
 
-    if (!followUpResponse.ok) {
-        throw new Error(`追加質問生成APIエラー: ${followUpResponse.statusText}`);
+    if (!response.ok) {
+        throw new Error(`GPT APIエラー: ${response.statusText}`);
     }
 
-    const followUpData = await followUpResponse.json();
-    const followUpContent = followUpData.choices[0].message.content.trim();
-    console.log('追加質問生成結果:', followUpContent);
-
-    // 2. 最終的な回答生成
-    console.log('\n[2] 最終回答生成開始');
-    const responsePrompt = `${KUKU_PROFILE}
-
-    ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
-
-    以下の情報をもとに、ククちゃんとして、ユーザーへの共感的で支援的な返答をわかりやすく簡潔に生成してください。
-    また、話を広げるような会話を必ず心がけてください。
-
-    ユーザーの質問: '${message}'
-    追加の質問提案: ${followUpContent}
-
-    ユーザーへの返答: ~~~`;
-
-    const finalResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
-            messages: [{ role: 'system', content: responsePrompt }],
-            temperature: 0.7,
-            max_tokens: 400
-        })
-    });
-
-    if (!finalResponse.ok) {
-        throw new Error(`最終回答生成APIエラー: ${finalResponse.statusText}`);
-    }
-
-    const finalData = await finalResponse.json();
-    const finalContent = finalData.choices[0].message.content.trim();
-    console.log('\n最終回答:', finalContent);
-    console.log('=== 雑談処理完了 ===\n');
-
-    return finalContent;
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
 }
 
 // メインのハンドラー関数
@@ -244,13 +360,6 @@ export default async function handler(req, res) {
     if (!apiKey) {
         console.error('OPENAI_API_KEYが設定されていません');
         return res.status(500).json({ error: 'サーバーの設定エラー: APIキーが設定されていません。' });
-    }
-
-    // セッションIDの管理
-    let sessionId = req.cookies.sessionId;
-    if (!sessionId) {
-        sessionId = uuidv4();
-        res.setHeader('Set-Cookie', `sessionId=${sessionId}; HttpOnly; Path=/`);
     }
 
     try {
@@ -285,12 +394,26 @@ export default async function handler(req, res) {
         let reply;
         const messageData = { message: userMessage, conversationHistory };
         
-        if (messageType === '相談') {
-            console.log('\n[2] 相談モードで処理開始');
-            reply = await handleConsultation(messageData, apiKey);
-        } else {
-            console.log('\n[2] 雑談モードで処理開始');
-            reply = await handleChatting(messageData, apiKey);
+        switch (messageType) {
+            case '相談':
+                reply = await handleConsultation(messageData, apiKey);
+                break;
+            case '情報':
+                reply = await handleInformation(messageData, apiKey);
+                break;
+            case '愚痴':
+                reply = await handleComplaint(messageData, apiKey);
+                break;
+            case '承認':
+                reply = await handleApproval(messageData, apiKey);
+                break;
+            case '議論':
+                reply = await handleDiscussion(messageData, apiKey);
+                break;
+            case '雑談':
+            default:
+                reply = await handleChatting(messageData, apiKey);
+                break;
         }
 
         // 3. 結果を返す
@@ -302,7 +425,6 @@ export default async function handler(req, res) {
             type: messageType
         });
 
-    
     } catch (error) {
         console.error('\n!!!! エラー発生 !!!!');
         console.error('エラー詳細:', error);
