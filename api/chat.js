@@ -394,7 +394,7 @@ export default async function handler(req, res) {
                     { role: 'user', content: userMessage }
                 ],
                 temperature: 0.3,
-                max_tokens: 50
+                max_tokens: 200
             })
         });
 
