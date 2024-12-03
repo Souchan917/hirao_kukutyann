@@ -48,7 +48,7 @@ async function handleConsultation(userMessageData, apiKey) {
     
     意図の分析: ~~~`;
 
-    const intentContent = await getGPTResponse(intentPrompt, apiKey);
+    const intentContent = await getGPTResponse(intentPrompt, apiKey, '1. 意図分析ステップ');
 
     // 2. 追加質問の生成
     const followUpPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
@@ -60,7 +60,7 @@ async function handleConsultation(userMessageData, apiKey) {
     
     追加質問案: ~~~`;
 
-    const followUpContent = await getGPTResponse(followUpPrompt, apiKey);
+    const followUpContent = await getGPTResponse(followUpPrompt, apiKey, '2. 追加質問生成ステップ');
 
     // 3. 最終的な回答生成
     const finalPrompt = `${KUKU_PROFILE}
@@ -76,7 +76,7 @@ async function handleConsultation(userMessageData, apiKey) {
     
     ユーザーへの返答: ~~~`;
 
-    return await getGPTResponse(finalPrompt, apiKey);
+    return await getGPTResponse(finalPrompt, apiKey, '3. 最終回答生成ステップ');
 }
 
 // 情報提供処理用の関数
@@ -325,29 +325,45 @@ async function handleChatting(userMessageData, apiKey) {
 }
 
 // 共通のGPT応答取得関数
-async function getGPTResponse(prompt, apiKey) {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.7,
-            max_tokens: 200
-        })
-    });
+async function getGPTResponse(prompt, apiKey, stage = 'Unknown') {
+    console.group(`\n=== ${stage} ===`);
+    console.log('プロンプト内容:');
+    console.log(prompt);
 
-    if (!response.ok) {
-        throw new Error(`GPT APIエラー: ${response.statusText}`);
+    try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt4o-mini',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.7,
+                max_tokens: 200
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`GPT APIエラー: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const result = data.choices[0].message.content.trim();
+        
+        console.log('\nAIからの応答:');
+        console.log(result);
+        console.groupEnd();
+        
+        return result;
+
+    } catch (error) {
+        console.error('APIエラー:', error);
+        console.groupEnd();
+        throw error;
     }
-
-    const data = await response.json();
-    return data.choices[0].message.content.trim();
 }
-
 // メインのハンドラー関数
 export default async function handler(req, res) {
     console.log('\n====== チャット処理開始 ======');
