@@ -175,7 +175,7 @@ function createRatingContainer() {
 
 function createRatingText() {
     const text = document.createElement("div");
-    text.textContent = "この回答は役に立ちましたか？";
+    text.textContent = "この回答を評価してください。評価すると次のチャットを送ることができます。";
     text.style.cssText = `
         margin-bottom: 10px;
         color: #666;
