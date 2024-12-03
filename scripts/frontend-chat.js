@@ -586,4 +586,4 @@ window.addEventListener('storage', (event) => {
 
 console.log("=== frontend-chat.js 読み込み完了 ===");
 
-export { getOrCreateSessionId, resetChat, endChat };
+export { getOrCreateSessionId, resetChat, endChat }
