@@ -324,51 +324,29 @@ async function handleChatting(userMessageData, apiKey) {
     return await getGPTResponse(finalPrompt, apiKey);
 }
 
-// 共通のGPT応答取得関数を改善
-async function getGPTResponse(prompt, apiKey, stage = 'Unknown') {
-    console.group(`=== GPT Response - ${stage} ===`);
-    console.log('送信プロンプト:');
-    console.log(prompt);
-    
-    try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'gpt4o-mini',
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.7,
-                max_tokens: 200
-            })
-        });
+// 共通のGPT応答取得関数
+async function getGPTResponse(prompt, apiKey) {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.7,
+            max_tokens: 200
+        })
+    });
 
-        if (!response.ok) {
-            throw new Error(`GPT APIエラー: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const result = data.choices[0].message.content.trim();
-        
-        console.log('AIからの応答:');
-        console.log(result);
-        console.groupEnd();
-        
-        return result;
-
-    } catch (error) {
-        console.error('APIエラー:', error);
-        console.groupEnd();
-        throw error;
+    if (!response.ok) {
+        throw new Error(`GPT APIエラー: ${response.statusText}`);
     }
-}
 
-// handleConsultation などの関数内での呼び出しを修正
-const intentContent = await getGPTResponse(intentPrompt, apiKey, '意図分析ステップ');
-const followUpContent = await getGPTResponse(followUpPrompt, apiKey, '追加質問生成ステップ');
-const result = await getGPTResponse(finalPrompt, apiKey, '最終回答生成ステップ');
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
+}
 
 // メインのハンドラー関数
 export default async function handler(req, res) {
