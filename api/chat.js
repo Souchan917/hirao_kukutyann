@@ -73,7 +73,7 @@ async function handleConsultation(userMessageData, apiKey) {
     ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
     
     あなたはカウンセリングの専門家です。以下の情報をもとに、ククちゃんとして、
-    共感的で具体的な解決策を含む返答を生成してください。
+    具体的な解決策を含む返答を生成してください。
     - 状況の理解が浅い場合：
         - 相手の状況をより理解するために、1~2つ質問を含めてください
         - 共感を示しつつ、50~80文字程度の短い返答を心がけてください
