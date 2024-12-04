@@ -272,7 +272,7 @@
         <div id="consent-box">
           <h2 class="mb-4">研究参加の同意書</h2>
       
-          <p>本アンケートは、育児のご経験や専門の知識を有する方々の貴重な意見を集め、子育て支援AIチャットボット「ククちゃん」の開発に生かすことを目的としています。</p>
+          <p>本アンケートは、育児のご経験や専門の知識を有する方々の貴重な意見を集め、子育て支援AIチャットボット「ククちゃん」の開発に生かすことを目的としています。ぜひご協力をお願いいたします！</p>
     
 
           <ul class="mb-4">
@@ -405,6 +405,9 @@
                         <div class="survey-item mb-4">
                             <p class="mb-2">3. 従来のくくちゃんに比べて、新しいくくちゃんはどうでしたか：</p>
                             <div class="rating-buttons" role="group" aria-label="比較">
+                                <input type="radio" class="btn-check" name="comparison" id="comparison0" value="0">
+                                <label class="btn btn-outline-primary" for="comparison0">0<br>従来のくくちゃんを<br>使ったことがない</label>
+                                
                                 <input type="radio" class="btn-check" name="comparison" id="comparison1" value="1">
                                 <label class="btn btn-outline-primary" for="comparison1">1<br>従来より<br>悪い</label>
                                 
@@ -510,8 +513,11 @@
                                 
                                 <input type="radio" class="btn-check" name="occupation" id="occ10" value="parent">
                                 <label class="btn btn-outline-primary" for="occ10">保護者</label>
+                         
+                                <input type="radio" class="btn-check" name="occupation" id="occ11" value="none">
+                                <label class="btn btn-outline-primary" for="occ11">特になし</label>
                             </div>
-                        </div>
+                         </div>
             
                         <div class="survey-item mb-4">
                             <p class="mb-2">8. 前述で回答いただいた経験・ご職業の継続年数を教えてください：</p>
@@ -546,7 +552,7 @@
                         </div>
             
                         <div class="survey-item mb-4">
-                            <p class="mb-2">9. ご意見・ご感想を自由にお書きください：</p>
+                            <p class="mb-2">9. ご意見・ご感想がありましたら自由にお書きください：</p>
                             <textarea id="feedback" class="form-control" rows="4"></textarea>
                         </div>
             
