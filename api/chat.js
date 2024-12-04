@@ -22,8 +22,8 @@ const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククち
 - アドバイスに必要な情報が揃っているか
 - 過去の会話から十分な情報が得られているか`;
 
-// 分類用のプロンプト
-const CLASSIFICATION_PROMPT = `あなたはカウンセリングのプロです。以下のユーザーの質問を「相談」「情報」「愚痴」「承認」「議論」「雑談」のいずれかに分類してください。
+// 分類用のプロンプトを改良
+const CLASSIFICATION_PROMPT = `あなたはカウンセリングのプロです。前後の文脈を考慮しながら、以下のユーザーの質問を「相談」「情報」「愚痴」「承認」「議論」「雑談」のいずれかに分類してください。
 
 各分類の説明は次の通りです：
 1. 相談：ユーザーが具体的な問題や困難についてアドバイスや解決策を求めている質問
@@ -33,7 +33,23 @@ const CLASSIFICATION_PROMPT = `あなたはカウンセリングのプロです�
 5. 議論：ユーザーが特定のテーマについての意見交換や討論を求めている質問
 6. 雑談：ユーザーが気軽な話題や軽い会話を楽しむための質問
 
-回答は上記6種類のいずれかの単語のみを返してください。`;
+分類の際は以下の点に注意してください：
+- 直前の会話の流れや文脈を重視する
+- 単純な質問の形式だけでなく、背景にある意図を読み取る
+- 同じ質問でも文脈によって異なる分類となる可能性がある
+- 直前の会話の分類も参考にする
+
+以下の情報をもとに分類を行ってください：
+### 直前の会話分類 ###
+{previousType}
+
+### 過去の会話履歴 ###
+{conversationHistory}
+
+### 現在の質問 ###
+{currentMessage}
+
+分類結果（上記6種類のいずれかの単語のみを返してください）: ~~~`;
 
 // 相談処理用の関数
 async function handleConsultation(userMessageData, apiKey) {
@@ -418,7 +434,7 @@ async function getGPTResponse(prompt, apiKey, stage = 'Unknown') {
         throw error;
     }
 }
-// メインのハンドラー関数
+// メインのハンドラー関数を修正
 export default async function handler(req, res) {
     console.log('\n====== チャット処理開始 ======');
     const { userMessage, conversationHistory } = req.body;
@@ -433,8 +449,26 @@ export default async function handler(req, res) {
     }
 
     try {
-        // 1. メッセージの分類
+        // 1. 直前の分類を取得
+        let previousType = '未分類';
+        const historyLines = conversationHistory ? conversationHistory.split('\n') : [];
+        if (historyLines.length > 0) {
+            // 最後から遡って最新の分類を探す
+            for (let i = historyLines.length - 1; i >= 0; i--) {
+                if (historyLines[i].includes('分類:')) {
+                    previousType = historyLines[i].split(':')[1].trim();
+                    break;
+                }
+            }
+        }
+
+        // 2. メッセージの分類
         console.log('\n[1] メッセージ分類開始');
+        const classificationPrompt = CLASSIFICATION_PROMPT
+            .replace('{previousType}', previousType)
+            .replace('{conversationHistory}', conversationHistory || '履歴なし')
+            .replace('{currentMessage}', userMessage);
+
         const classificationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -444,8 +478,7 @@ export default async function handler(req, res) {
             body: JSON.stringify({
                 model: 'gpt-4o-mini',
                 messages: [
-                    { role: 'system', content: CLASSIFICATION_PROMPT },
-                    { role: 'user', content: userMessage }
+                    { role: 'system', content: classificationPrompt }
                 ],
                 temperature: 0.3,
                 max_tokens: 200
@@ -459,10 +492,16 @@ export default async function handler(req, res) {
         const classificationData = await classificationResponse.json();
         const messageType = classificationData.choices[0].message.content.trim();
         console.log('\n分類結果:', messageType);
+        console.log('直前の分類:', previousType);
 
-        // 2. 分類に基づいて処理を分岐
+        // 3. 分類に基づいて処理を分岐
         let reply;
-        const messageData = { message: userMessage, conversationHistory };
+        const messageData = { 
+            message: userMessage, 
+            conversationHistory: conversationHistory ? 
+                `${conversationHistory}\n分類: ${messageType}` : 
+                `分類: ${messageType}`
+        };
         
         switch (messageType) {
             case '相談':
@@ -486,8 +525,8 @@ export default async function handler(req, res) {
                 break;
         }
 
-        // 3. 結果を返す
-        console.log('\n[3] 最終結果:', { type: messageType, reply: reply });
+        // 4. 結果を返す
+        console.log('\n[4] 最終結果:', { type: messageType, reply: reply });
         console.log('====== チャット処理完了 ======\n');
 
         res.status(200).json({
