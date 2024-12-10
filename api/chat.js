@@ -247,6 +247,7 @@ async function handleComplaint(userMessageData, apiKey) {
     - 必要な場合のみ、さらに1文で経験を共有
     - 長い説明や解決策の提案は避ける
     - 相手の気持ちをシンプルに受け止める
+    - もっと相手の愚痴を引き出すような会話を心がけてください
 
     ユーザーの愚痴: '${message}'
     意図の分析: '${intentContent}'

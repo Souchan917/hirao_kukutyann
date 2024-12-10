@@ -13,66 +13,9 @@
             color: #424242;
         }
 
-        /* 同意画面のスタイル */
-        #consent-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;  /* centerから変更 */
-            z-index: 1000;
-            overflow-y: auto;
-            padding: 2rem 0;         /* 上下のパディングを追加 */
-        }
-
-        #consent-box {
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            max-width: 600px;
-            width: 100%;
-            margin: auto;           /* 上下のマージンを追加 */
-            margin-top: 0;         /* 上部マージンを0に */
-        }
-        /* コンテンツ部分を包む新しいdivを追加することを推奨 */
-        .consent-content {
-            overflow-y: auto;       /* スクロール可能に */
-            max-height: 60vh;       /* 適度な高さに制限 */
-            padding-right: 1rem;    /* スクロールバー分の余白 */
-        }
-
-        .consent-button-container {
-            margin-top: 2rem;
-            text-align: center;
-        }
-
-        #consent-button {
-            padding: 0.75rem 2.5rem;
-            font-size: 1.1rem;
-            display: inline-block;
-        }
-
-        /* モバイル向けの追加調整 */
-        @media (max-width: 768px) {
-            #consent-overlay {
-                padding-bottom: 340px; /* モバイルでの下部余白を増やす */
-            }
-            
-            #consent-box {
-                margin: 10px auto; /* モバイルでのマージンを調整 */
-            }
-        }
-
-
-
-
 
         #main-content {
-            display: none;
+            display: block;
             padding-top: 70px;
         }
 
@@ -383,47 +326,7 @@
 </head>
 <body>
     <!-- 同意画面 -->
-    <div id="consent-overlay">
-        <div id="consent-box">
-          <h2 class="mb-4">研究参加の同意書</h2>
-      
-          <p>本アンケートは、育児のご経験や専門の知識を有する方々の貴重な意見を集め、子育て支援AIチャットボット「ククちゃん」をより良くすることを目的としています。ぜひご協力をお願いいたします！</p>
-    
 
-          <ul class="mb-4">
-            <li>本研究は電気通信大学 人工知能先端研究センターが実施しています。</li>
-            <li>皆様から提供いただいた情報は、最大限の注意を払って適切に管理し、厳重に保護いたします。</li>
-            <li>収集したデータは研究目的にのみ使用され、個人を特定できる情報が含まれていた場合でも、それらが外部に漏れることは一切ございません。</li>
-            <li>研究成果は学術論文等で公表される可能性がありますが、個人を特定できる情報は含まれません。</li>
-            <li>本システムで提供される情報は参考情報です。医療や専門的なアドバイスが必要な場合は、専門家にご相談ください。</li>
-          </ul>
-
-
-          <div class="study-flow mb-4">
-            <h3 class="mb-3">研究の流れ</h3>
-            <ol class="flow-list mb-4">
-              <li>ククちゃんに子育ての相談や質問をしてください。</li>
-              <li>一連の会話が終わりましたら、「チャットを終わる」ボタンを押してください。</li>
-              <li>その後表示される最終アンケートにご回答ください。</li>
-              <li>新たな子育ての相談があれば1～3を繰り返してください。</li>
-            </ol>
-            <p class="time-notice">所要時間はおよそ5~10分です。<br>よろしければ何パターンか会話を評価して頂きたく思います。</p>
-          </div>
-      
-
-          <p class="mb-4">調査責任者：粕谷<br>
-
-            
-          電気通信大学 人工知能先端研究センター<br>
-          調査担当：平尾・阿部<br>
-          研究協力　株式会社ＣｈｉＣａＲｏ（チカロ）<br>
-          連絡先：s_hirao@radish.ee.uec.ac.jp</p>
-      
-          <div class="consent-button-container">
-            <button id="consent-button" class="btn btn-primary">同意して始める</button>
-        </div>
-        </div>
-      </div>
       
       <div id="main-content">
         <div class="container-lg">
@@ -714,11 +617,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- 同意画面の制御 -->
-    <script>
-        document.getElementById('consent-button').addEventListener('click', function() {
-            document.getElementById('consent-overlay').style.display = 'none';
-            document.getElementById('main-content').style.display = 'block';
-        });
-    </script>
+
 </body>
 </html>
