@@ -47,6 +47,16 @@ let surveyAnswers = {
 };
 
 
+// テキストエリアの自動リサイズ設定
+const textarea = document.getElementById('questionInput');
+if (textarea) {
+    textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
+    });
+}
+
+
 
 // ローカルストレージ関連の関数
 function saveLocalChatHistory(content, type) {
@@ -538,11 +548,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (questionInput) {
-        questionInput.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") {
-                sendMessage();
-            }
-        });
+        // questionInput.addEventListener("keypress", (e) => {
+        //     if (e.key === "Enter") {
+        //         sendMessage();
+        //     }
+        // });
         console.log("入力フィールドのリスナーを設定");
     }
 
