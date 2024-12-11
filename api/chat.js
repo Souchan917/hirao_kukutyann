@@ -557,13 +557,14 @@ function saveSummaryToLocal(summary) {
     }
 }
 
+// ローカルストレージから会話のまとめを取得する関数
 function getSummaryFromLocal() {
     try {
         const storedSummary = localStorage.getItem(SUMMARY_STORAGE_KEY);
-        return storedSummary ? JSON.parse(storedSummary).summary : '';
+        return storedSummary ? JSON.parse(storedSummary).summary : 'なし'; // まとめが存在しない場合は「なし」
     } catch (error) {
         console.error('会話まとめの取得中にエラー:', error);
-        return '';
+        return 'なし';
     }
 }
 
