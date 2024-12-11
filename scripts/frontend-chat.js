@@ -271,7 +271,8 @@ function setupRatingButtonEvents(goodBtn, badBtn) {
     badBtn.onclick = async () => await handleRating('bad', content, badBtn, goodBtn);
 }
 
-// メッセージ送信関数
+// frontend-chat.js
+
 async function sendMessage() {
     if (isSubmitting || !lastMessageEvaluated) {
         if (!lastMessageEvaluated) {
@@ -290,19 +291,20 @@ async function sendMessage() {
     questionInput.disabled = true;
     sendButton.disabled = true;
 
+    // ローディング状態を表示
+    const loadingState = document.getElementById('loading-state');
+    loadingState.style.display = 'flex';
+
     try {
         const sessionId = getOrCreateSessionId();
         
-        // メッセージを表示
         addMessage(message, "user");
 
-        // 会話履歴を取得
         const history = getLocalChatHistory();
         const conversationHistory = history
             .map(msg => `${msg.type === 'user' ? 'ユーザー' : 'ククちゃん'}: ${msg.content}`)
             .join('\n');
 
-        // Firebaseにも保存
         await saveMessage(message, "user", sessionId);
 
         const response = await fetch(apiUrl, {
@@ -331,7 +333,8 @@ async function sendMessage() {
     } finally {
         isSubmitting = false;
         questionInput.value = "";
-        // 注意: ここではinput/buttonを有効化しない（評価待ち）
+        // ローディング状態を非表示
+        loadingState.style.display = 'none';
     }
 }
 
