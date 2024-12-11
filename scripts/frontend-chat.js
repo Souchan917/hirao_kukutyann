@@ -47,37 +47,31 @@ let surveyAnswers = {
 };
 
 
-// テキストエリアの自動リサイズ設定
-const textarea = document.getElementById('questionInput');
-if (textarea) {
-    textarea.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = this.scrollHeight + 'px';
-    });
-}
-
-
 
 // ローカルストレージ関連の関数
-function getSummaryFromLocal() {
+function saveLocalChatHistory(content, type) {
     try {
-        const storedSummary = localStorage.getItem(SUMMARY_STORAGE_KEY);
-        return storedSummary ? JSON.parse(storedSummary).summary : 'なし'; // まとめが存在しない場合は「なし」
-    } catch (error) {
-        console.error('会話まとめの取得中にエラー:', error);
-        return 'なし';
-    }
-}
-
-function saveSummaryToLocal(summary) {
-    try {
-        localStorage.setItem(SUMMARY_STORAGE_KEY, JSON.stringify({
-            summary,
+        let history = [];
+        const savedHistory = localStorage.getItem(CHAT_HISTORY_KEY);
+        if (savedHistory) {
+            history = JSON.parse(savedHistory);
+        }
+        
+        history.push({
+            content,
+            type,
             timestamp: new Date().toISOString()
-        }));
-        console.log('会話まとめをローカルストレージに保存しました:', summary);
+        });
+        
+        // 最新6件（3往復分）のみ保持
+        if (history.length > 10) {
+            history = history.slice(-10);
+        }
+        
+        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
+        console.log('ローカルストレージに保存しました:', history);
     } catch (error) {
-        console.error('会話まとめの保存中にエラー:', error);
+        console.error('ローカル履歴の保存中にエラー:', error);
     }
 }
 
@@ -93,7 +87,6 @@ function getLocalChatHistory() {
 
 function clearLocalChatHistory() {
     localStorage.removeItem(CHAT_HISTORY_KEY);
-    localStorage.removeItem(SUMMARY_STORAGE_KEY); // 会話まとめをリセット
     console.log('ローカル履歴をクリアしました');
 }
 
@@ -182,7 +175,7 @@ function createRatingContainer() {
 
 function createRatingText() {
     const text = document.createElement("div");
-    text.textContent = "この回答を評価すると次のチャットを送ることができます。";
+    text.textContent = "この回答を評価してください。評価すると次のチャットを送ることができます。";
     text.style.cssText = `
         margin-bottom: 10px;
         color: #666;
@@ -268,8 +261,7 @@ function setupRatingButtonEvents(goodBtn, badBtn) {
     badBtn.onclick = async () => await handleRating('bad', content, badBtn, goodBtn);
 }
 
-// frontend-chat.js
-
+// メッセージ送信関数
 async function sendMessage() {
     if (isSubmitting || !lastMessageEvaluated) {
         if (!lastMessageEvaluated) {
@@ -288,20 +280,19 @@ async function sendMessage() {
     questionInput.disabled = true;
     sendButton.disabled = true;
 
-    // ローディング状態を表示
-    const loadingState = document.getElementById('loading-state');
-    loadingState.style.display = 'flex';
-
     try {
         const sessionId = getOrCreateSessionId();
         
+        // メッセージを表示
         addMessage(message, "user");
 
+        // 会話履歴を取得
         const history = getLocalChatHistory();
         const conversationHistory = history
             .map(msg => `${msg.type === 'user' ? 'ユーザー' : 'ククちゃん'}: ${msg.content}`)
             .join('\n');
 
+        // Firebaseにも保存
         await saveMessage(message, "user", sessionId);
 
         const response = await fetch(apiUrl, {
@@ -330,8 +321,7 @@ async function sendMessage() {
     } finally {
         isSubmitting = false;
         questionInput.value = "";
-        // ローディング状態を非表示
-        loadingState.style.display = 'none';
+        // 注意: ここではinput/buttonを有効化しない（評価待ち）
     }
 }
 
@@ -548,11 +538,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (questionInput) {
-        // questionInput.addEventListener("keypress", (e) => {
-        //     if (e.key === "Enter") {
-        //         sendMessage();
-        //     }
-        // });
+        questionInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                sendMessage();
+            }
+        });
         console.log("入力フィールドのリスナーを設定");
     }
 
