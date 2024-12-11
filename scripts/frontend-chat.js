@@ -59,29 +59,25 @@ if (textarea) {
 
 
 // ローカルストレージ関連の関数
-function saveLocalChatHistory(content, type) {
+function getSummaryFromLocal() {
     try {
-        let history = [];
-        const savedHistory = localStorage.getItem(CHAT_HISTORY_KEY);
-        if (savedHistory) {
-            history = JSON.parse(savedHistory);
-        }
-        
-        history.push({
-            content,
-            type,
-            timestamp: new Date().toISOString()
-        });
-        
-        // 最新6件（3往復分）のみ保持
-        if (history.length > 10) {
-            history = history.slice(-10);
-        }
-        
-        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
-        console.log('ローカルストレージに保存しました:', history);
+        const storedSummary = localStorage.getItem(SUMMARY_STORAGE_KEY);
+        return storedSummary ? JSON.parse(storedSummary).summary : 'なし'; // まとめが存在しない場合は「なし」
     } catch (error) {
-        console.error('ローカル履歴の保存中にエラー:', error);
+        console.error('会話まとめの取得中にエラー:', error);
+        return 'なし';
+    }
+}
+
+function saveSummaryToLocal(summary) {
+    try {
+        localStorage.setItem(SUMMARY_STORAGE_KEY, JSON.stringify({
+            summary,
+            timestamp: new Date().toISOString()
+        }));
+        console.log('会話まとめをローカルストレージに保存しました:', summary);
+    } catch (error) {
+        console.error('会話まとめの保存中にエラー:', error);
     }
 }
 
@@ -97,6 +93,7 @@ function getLocalChatHistory() {
 
 function clearLocalChatHistory() {
     localStorage.removeItem(CHAT_HISTORY_KEY);
+    localStorage.removeItem(SUMMARY_STORAGE_KEY); // 会話まとめをリセット
     console.log('ローカル履歴をクリアしました');
 }
 
