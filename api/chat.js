@@ -96,8 +96,8 @@ const CLASSIFICATION_PROMPT = `あなたは子育て専門のカウンセラー�
 ### 直前の会話分類 ###
 {previousType}
 
-### 過去の会話履歴 ###
-{conversationHistory}
+### これまでの会話まとめ ###
+{previousSummary}
 
 ### 現在の質問 ###
 {currentMessage}
@@ -107,14 +107,15 @@ const CLASSIFICATION_PROMPT = `あなたは子育て専門のカウンセラー�
 
 
 
-
-// 相談処理用の関数
 async function handleConsultation(userMessageData, apiKey) {
     console.log('\n=== 相談処理開始 ===');
-    const { message, conversationHistory } = userMessageData;
+    const { message } = userMessageData;
+
+    // 過去の会話まとめを取得
+    const previousSummary = getSummaryFromLocal();
 
     // 1. 意図分析
-    const intentPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    const intentPrompt = `${previousSummary ? `\n### 過去の会話まとめ ###\n${previousSummary}\n` : ''} 
     あなたはカウンセリングの専門家です。以下のユーザーの相談に含まれている意図を詳細に分析してください。
     - 主訴は何か
     - どのような状況で困っているのか
@@ -129,10 +130,9 @@ async function handleConsultation(userMessageData, apiKey) {
     const intentContent = await getGPTResponse(intentPrompt, apiKey, '1. 意図分析ステップ');
 
     // 追加質問を2つまでに制限
-    const followUpPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    const followUpPrompt = `${previousSummary ? `\n### 過去の会話まとめ ###\n${previousSummary}\n` : ''} 
     あなたはカウンセリングの専門家です。この相談をより良く理解し適切なアドバイスをするために、
     最も重要な1-2個の質問を提案してください。数は必ず2つ以下にしてください。
-
     
     ユーザーの相談: '${message}'
     意図の分析: '${intentContent}'
@@ -144,20 +144,20 @@ async function handleConsultation(userMessageData, apiKey) {
     // 3. 最終的な回答生成
     const finalPrompt = `${KUKU_PROFILE}
     
-    ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    ${previousSummary ? `\n### 過去の会話まとめ ###\n${previousSummary}\n` : ''} 
     
     あなたはカウンセリングの専門家です。以下の情報をもとに、ククちゃんとして、
     具体的な解決策を含む返答を生成してください。
     - 状況の理解が浅い場合：
         - 相手の状況をより理解するために、1~2つ質問を含めてください
         - 共感を示しつつ、50~80文字程度の短い返答を心がけてください
-    - 状況を十分に理解できている
+    - 状況を十分に理解できている：
         - 具体的なアドバイスを含む200文字程度の文章を作成してください
     - いずれの場合も以下を守ってください：
         - 文章に合わせて絵文字や「！」を付けてください
         - 相手に共感するコメントをしたり、相手の気持ちを代弁してください
         - 親しみやすい口調を維持してください
-        - 履歴を参考に適切な返答をしてください
+        - 会話のまとめを参考に適切な返答をしてください
 
     ユーザーの相談: '${message}'
     意図の分析: '${intentContent}'
@@ -168,12 +168,16 @@ async function handleConsultation(userMessageData, apiKey) {
     return await getGPTResponse(finalPrompt, apiKey, '3. 最終回答生成ステップ');
 }
 
+
 async function handleInformation(userMessageData, apiKey) {
     console.log('\n=== 情報提供処理開始 ===');
-    const { message, conversationHistory } = userMessageData;
+    const { message } = userMessageData;
+
+    // 過去の会話まとめを取得
+    const previousSummary = getSummaryFromLocal();
 
     // 1. 意図分析のみ実施
-    const intentPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    const intentPrompt = `${previousSummary ? `\n### 過去の会話まとめ ###\n${previousSummary}\n` : ''} 
     あなたは子育ての専門家です。以下のユーザーの質問について分析してください。
     - どのような情報を求めているか
     - その情報をどのように活用したいのか
@@ -189,7 +193,7 @@ async function handleInformation(userMessageData, apiKey) {
     // 2. 直接最終的な回答を生成
     const finalPrompt = `${KUKU_PROFILE}
     
-    ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    ${previousSummary ? `\n### 過去の会話まとめ ###\n${previousSummary}\n` : ''} 
     
     あなたは子育ての専門家です。以下の情報をもとに、ククちゃんとして、
     わかりやすく正確な情報提供を含む返答を生成してください。
@@ -213,10 +217,13 @@ async function handleInformation(userMessageData, apiKey) {
 
 async function handleComplaint(userMessageData, apiKey) {
     console.log('\n=== 愚痴処理開始 ===');
-    const { message, conversationHistory } = userMessageData;
+    const { message } = userMessageData;
+
+    // 過去の会話まとめを取得
+    const previousSummary = getSummaryFromLocal();
 
     // 1. より詳細な意図分析
-    const intentPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    const intentPrompt = `${previousSummary ? `\n### 過去の会話まとめ ###\n${previousSummary}\n` : ''} 
     あなたは共感的なカウンセラーです。以下のユーザーの愚痴について詳細に分析してください。
     
     特に以下の点を深く理解することに注力してください：
@@ -237,7 +244,7 @@ async function handleComplaint(userMessageData, apiKey) {
     // 最終的な回答生成部分を修正
     const finalPrompt = `${KUKU_PROFILE}
     
-    ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    ${previousSummary ? `\n### 過去の会話まとめ ###\n${previousSummary}\n` : ''} 
     
     あなたはククちゃんとして、以下の方針で返答を生成してください：
 
@@ -259,10 +266,13 @@ async function handleComplaint(userMessageData, apiKey) {
 
 async function handleApproval(userMessageData, apiKey) {
     console.log('\n=== 承認処理開始 ===');
-    const { message, conversationHistory } = userMessageData;
+    const { message } = userMessageData;
+
+    // 過去の会話まとめを取得
+    const previousSummary = getSummaryFromLocal();
 
     // 1. 詳細な意図分析（必要）
-    const intentPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    const intentPrompt = `${previousSummary ? `\n### 過去の会話まとめ ###\n${previousSummary}\n` : ''} 
     あなたは子育ての専門家です。以下のユーザーの発言について詳細に分析してください。
     
     分析ポイント：
@@ -282,7 +292,7 @@ async function handleApproval(userMessageData, apiKey) {
     // 2. 承認に特化した回答生成
     const finalPrompt = `${KUKU_PROFILE}
     
-    ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    ${previousSummary ? `\n### 過去の会話まとめ ###\n${previousSummary}\n` : ''} 
     
     あなたはククちゃんとして、親としての決定や感情を完全に受け入れ、承認する立場で回答してください。
 
@@ -317,10 +327,13 @@ async function handleApproval(userMessageData, apiKey) {
 
 async function handleDiscussion(userMessageData, apiKey) {
     console.log('\n=== 議論処理開始 ===');
-    const { message, conversationHistory } = userMessageData;
+    const { message } = userMessageData;
+
+    // 過去の会話まとめを取得
+    const previousSummary = getSummaryFromLocal();
 
     // 1. 詳細な意図分析
-    const intentPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    const intentPrompt = `${previousSummary ? `\n### 過去の会話まとめ ###\n${previousSummary}\n` : ''} 
     あなたは子育ての専門家です。以下のユーザーの議論テーマについて詳細に分析してください。
 
     分析ポイント：
@@ -341,7 +354,7 @@ async function handleDiscussion(userMessageData, apiKey) {
     // 2. 多角的な視点を含む回答生成
     const finalPrompt = `${KUKU_PROFILE}
     
-    ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    ${previousSummary ? `\n### 過去の会話まとめ ###\n${previousSummary}\n` : ''} 
     
     あなたはククちゃんとして、以下の方針で建設的な議論を展開してください：
 
@@ -387,10 +400,13 @@ async function handleDiscussion(userMessageData, apiKey) {
 
 async function handleChatting(userMessageData, apiKey) {
     console.log('\n=== 雑談処理開始 ===');
-    const { message, conversationHistory } = userMessageData;
+    const { message } = userMessageData;
+
+    // 過去の会話まとめを取得
+    const previousSummary = getSummaryFromLocal();
 
     // 1. 会話の意図と文脈の理解
-    const intentPrompt = `${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    const intentPrompt = `${previousSummary ? `\n### 過去の会話まとめ ###\n${previousSummary}\n` : ''} 
     あなたは会話分析の専門家です。以下のユーザーの発言を分析してください：
 
     分析ポイント：
@@ -410,7 +426,7 @@ async function handleChatting(userMessageData, apiKey) {
     // 最終的な回答生成部分を修正
     const finalPrompt = `${KUKU_PROFILE}
     
-    ${conversationHistory ? `\n### 過去の会話履歴 ###\n${conversationHistory}\n` : ''}
+    ${previousSummary ? `\n### 過去の会話まとめ ###\n${previousSummary}\n` : ''} 
     
     あなたはククちゃんとして、以下の方針で返答を生成してください：
 
@@ -473,7 +489,85 @@ async function getGPTResponse(prompt, apiKey, stage = 'Unknown') {
         throw error;
     }
 }
-// メインのハンドラー関数を修正
+// 会話まとめ生成用のプロンプト
+const CONVERSATION_SUMMARY_PROMPT = `あなたは子育て相談の専門カウンセラーとして、これまでの会話の流れを分析・まとめてください。
+
+### 直前の会話の内容 ###
+ユーザー: {userMessage}
+分類: {messageType}
+意図推定: {intentContent}
+ククちゃんの返答: {aiResponse}
+
+### 前回までの会話まとめ ###
+{previousSummary}
+
+以下の点について簡潔に整理してください：
+
+1. 相談の主要点
+- 主な話題や相談内容
+- ユーザーの状況や背景
+- 確認された情報
+- 未確認の情報
+
+2. ユーザーの状態
+- 感情の状態
+- 主な懸念事項
+- 求めているもの
+
+3. 対応状況
+- 提供したアドバイスや情報
+- 共感・承認のポイント
+- 追加で必要な対応
+
+4. 継続的な課題
+- 未解決の問題
+- フォローが必要な点
+- 今後の方向性
+
+これまでの会話の流れも踏まえて、箇条書きで簡潔にまとめてください。
+
+まとめ: ~~~`;
+
+// 会話まとめを生成する関数
+async function generateConversationSummary(userMessageData, apiKey, previousSummary = '') {
+    const { message, messageType, intentContent, aiResponse } = userMessageData;
+
+    const summaryPrompt = CONVERSATION_SUMMARY_PROMPT
+        .replace('{userMessage}', message)
+        .replace('{messageType}', messageType)
+        .replace('{intentContent}', intentContent)
+        .replace('{aiResponse}', aiResponse)
+        .replace('{previousSummary}', previousSummary);
+
+    return await getGPTResponse(summaryPrompt, apiKey, '会話まとめ生成');
+}
+
+// ローカルストレージ関連の関数
+const SUMMARY_STORAGE_KEY = 'kukuchan_conversation_summary';
+
+function saveSummaryToLocal(summary) {
+    try {
+        localStorage.setItem(SUMMARY_STORAGE_KEY, JSON.stringify({
+            summary,
+            timestamp: new Date().toISOString()
+        }));
+        console.log('会話まとめをローカルストレージに保存しました:', summary);
+    } catch (error) {
+        console.error('会話まとめの保存中にエラー:', error);
+    }
+}
+
+function getSummaryFromLocal() {
+    try {
+        const storedSummary = localStorage.getItem(SUMMARY_STORAGE_KEY);
+        return storedSummary ? JSON.parse(storedSummary).summary : '';
+    } catch (error) {
+        console.error('会話まとめの取得中にエラー:', error);
+        return '';
+    }
+}
+
+// メインハンドラー関数
 export default async function handler(req, res) {
     console.log('\n====== チャット処理開始 ======');
     const { userMessage, conversationHistory } = req.body;
@@ -564,13 +658,27 @@ export default async function handler(req, res) {
                 break;
         }
 
-        // 4. 結果を返す
-        console.log('\n[4] 最終結果:', { type: messageType, reply: reply });
+        // 4. 会話まとめの生成
+        console.log('\n[4] 会話まとめ生成開始');
+        const previousSummary = getSummaryFromLocal();
+        const updatedSummary = await generateConversationSummary({
+            message: userMessage,
+            messageType: messageType,
+            intentContent: classificationData.choices[0].message.content,
+            aiResponse: reply
+        }, apiKey, previousSummary);
+
+        // 5. 会話まとめを保存
+        saveSummaryToLocal(updatedSummary);
+
+        // 6. 結果を返す
+        console.log('\n[6] 最終結果:', { type: messageType, reply: reply, summary: updatedSummary });
         console.log('====== チャット処理完了 ======\n');
 
         res.status(200).json({
             reply: reply,
-            type: messageType
+            type: messageType,
+            summary: updatedSummary
         });
 
     } catch (error) {
