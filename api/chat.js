@@ -180,6 +180,7 @@ async function handleConsultation(userMessageData, apiKey) {
         - 相手に共感するコメントをしたり、相手の気持ちを代弁してください
         - 親しみやすい口調を維持してください
         - 会話のまとめを参考に適切な返答をしてください
+        - 重要な部分があれば「」などでわかりやすくしてください
     
     ユーザーの相談: '${message}'
     意図の分析: '${intentContent}'
