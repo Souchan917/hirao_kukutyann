@@ -1,13 +1,11 @@
-// libs/firebase.js
-
-// Firebaseのインポート - whereを追加
+// firebase.edge.js
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { 
     getFirestore, 
     collection, 
     addDoc,
     query, 
-    where, // whereを追加
+    where,
     orderBy,
     getDocs 
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
@@ -23,11 +21,25 @@ const firebaseConfig = {
     measurementId: "G-8FSDCGV2M7"
 };
 
-// Firebaseの初期化
-console.log('Firebaseの初期化を開始...');
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-console.log('Firebaseの初期化が完了しました');
+// グローバル変数としてアプリとDBのインスタンスを保持
+let app;
+let db;
+
+// Edge Runtime用の初期化関数
+function initializeFirebase() {
+    if (!app) {
+        console.log('Firebaseの初期化を開始...');
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            console.log('Firebaseの初期化が完了しました');
+        } catch (error) {
+            console.error('Firebase初期化エラー:', error);
+            throw error;
+        }
+    }
+    return db;
+}
 
 /**
  * メッセージを保存する関数
@@ -40,12 +52,12 @@ export async function saveMessage(content, type, sessionId) {
     
     if (!sessionId) {
         console.error('セッションIDが指定されていません');
-        // エラーをスローする代わりにデフォルトのセッションIDを生成
         sessionId = 'default-session-' + new Date().getTime();
         console.log('デフォルトのセッションIDを生成しました:', sessionId);
     }
 
     try {
+        const db = initializeFirebase();
         const chatCollection = collection(db, "chatLogs");
         const messageData = {
             content: content,
@@ -60,7 +72,8 @@ export async function saveMessage(content, type, sessionId) {
         return docRef.id;
     } catch (error) {
         console.error('メッセージの保存中にエラーが発生:', error);
-        throw error;
+        // Edge環境ではエラーをスローせずに処理を続行
+        return null;
     }
 }
 
@@ -78,7 +91,7 @@ export async function getChatHistory(sessionId) {
     }
 
     try {
-        // 特定のセッションIDに対応するメッセージを時系列で取得
+        const db = initializeFirebase();
         const chatQuery = query(
             collection(db, "chatLogs"),
             where("sessionId", "==", sessionId),
@@ -106,18 +119,21 @@ export async function getChatHistory(sessionId) {
 
     } catch (error) {
         console.error('チャット履歴の取得中にエラーが発生:', error);
-        // エラーが発生しても空の配列を返す
+        // Edge環境ではエラーをスローせずに空の配列を返す
         return [];
     }
 }
 
-
-
-// firebase.js に追加
+/**
+ * セッションサマリーを保存する関数
+ * @param {string} sessionId - セッションID
+ * @param {Object} summaryData - サマリーデータ
+ */
 export async function saveSummaryData(sessionId, summaryData) {
     console.log('セッションサマリーを保存:', { sessionId, summaryData });
     
     try {
+        const db = initializeFirebase();
         const summaryCollection = collection(db, "sessionSummaries");
         const docRef = await addDoc(summaryCollection, {
             sessionId: sessionId,
@@ -129,9 +145,17 @@ export async function saveSummaryData(sessionId, summaryData) {
         return docRef.id;
     } catch (error) {
         console.error('セッションサマリーの保存中にエラーが発生:', error);
-        throw error;
+        // Edge環境ではエラーをスローせずに処理を続行
+        return null;
     }
 }
 
-// Firestoreのインスタンスをエクスポート
-export { db };
+// 初期化済みのFirestoreインスタンスをエクスポート
+export function getDb() {
+    return initializeFirebase();
+}
+
+// すべての必要な関数をエクスポート
+export {
+    initializeFirebase
+};
