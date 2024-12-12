@@ -570,7 +570,7 @@ export default async function handler(req, res) {
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'system', content: classificationPrompt }],
                 temperature: 0.3,
-                max_tokens: 100
+                max_tokens: 50
             })
         });
 
