@@ -684,8 +684,8 @@ async function getFollowUpQuestion(prompt, apiKey) {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                // model: 'gpt-4o-mini',
-                model: 'gpt-3.5-turbo-1106',  // gpt-4o-miniから変更
+                model: 'gpt-4o-mini',
+                // model: 'gpt-3.5-turbo-1106',  // gpt-4o-miniから変更
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.5,  // 適度な創造性のため
                 max_tokens: 100    // 質問は簡潔に
@@ -779,8 +779,8 @@ async function generateConversationSummary(userMessageData, messageType, intentC
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                // model: 'gpt-4o-mini',
-                model: 'gpt-3.5-turbo-1106',  // gpt-4o-miniから変更
+                model: 'gpt-4o-mini',
+                // model: 'gpt-3.5-turbo-1106',  // gpt-4o-miniから変更
                 messages: [{ role: 'user', content: summaryPrompt }],
                 temperature: 0.3,  // 一貫性のため低めに
                 max_tokens: 150    // まとめ用に適度な長さ
