@@ -53,7 +53,9 @@ let state = {
     sessionData: {
         messages: [],
         ratings: [],
-        startTime: new Date()
+        startTime: new Date(),
+        messageTypes: [],    // 空配列として初期化
+        intentAnalysis: []   // 空配列として初期化
     }
 };
 
@@ -207,19 +209,33 @@ function setupRatingButtonEvents(goodBtn, badBtn) {
     badBtn.onclick = async () => await handleRating('bad', content, badBtn, goodBtn);
 }
 
-// メッセージ追加関数
-function addMessage(content, type) {
+// addMessage 関数を修正
+
+function addMessage(content, type, messageType = null, intentContent = null) {
     const messageDiv = document.createElement("div");
     messageDiv.className = type === "user" ? "user-message" : "ai-message";
     messageDiv.textContent = content;
     chatContainer.appendChild(messageDiv);
 
-    // セッションデータに追加（分類結果も含める）
-    state.sessionData.messages.push({
+    // メッセージデータを作成
+    const messageData = {
         content: content,
         type: type,
         timestamp: new Date()
-    });
+    };
+
+    // 分類情報とAIの意図分析を保存（AIメッセージの場合）
+    if (type === "ai" && messageType) {
+        messageData.messageType = messageType;
+        state.sessionData.messageTypes[content] = messageType;
+    }
+    if (type === "ai" && intentContent) {
+        messageData.intentContent = intentContent;
+        state.sessionData.intentAnalysis[content] = intentContent;
+    }
+
+    // セッションデータに追加
+    state.sessionData.messages.push(messageData);
 
     if (type === "ai") {
         state.lastMessageEvaluated = false;
@@ -240,8 +256,8 @@ function addMessage(content, type) {
 
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
+// sendMessage 関数を修正
 
-// メッセージ送信関数
 async function sendMessage() {
     if (state.isSubmitting || !state.lastMessageEvaluated) {
         if (!state.lastMessageEvaluated) {
@@ -286,12 +302,12 @@ async function sendMessage() {
 
         const data = await response.json();
         
-        
         if (data.summary) {
             summaryManager.saveSummary(data.summary);
         }
 
-        addMessage(data.reply, "ai");
+        // 分類情報とともにメッセージを追加
+        addMessage(data.reply, "ai", data.type, data.intentContent);
         await saveMessage(data.reply, "ai", sessionId);
 
     } catch (error) {
