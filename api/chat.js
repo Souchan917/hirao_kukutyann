@@ -781,7 +781,7 @@ async function generateConversationSummary(userMessageData, messageType, intentC
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: summaryPrompt }],
                 temperature: 0.4,  // 一貫性のため低めに
-                max_tokens: 300    // まとめ用に適度な長さ
+                max_tokens: 200    // まとめ用に適度な長さ
             })
         });
 
