@@ -727,7 +727,7 @@ async function getFinalResponse(prompt, apiKey) {
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.7,  // 自然な応答のため
-                max_tokens: 500    // 十分な長さの回答のため増量
+                max_tokens: 300    // 十分な長さの回答のため増量
             })
         });
 
