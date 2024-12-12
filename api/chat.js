@@ -185,7 +185,7 @@ async function handleConsultation(userMessageData, apiKey) {
     
     意図の分析: ~~~`;
 
-    const intentContent = await getGPTResponse(intentPrompt, apiKey, '1. 意図分析ステップ');
+    const intentContent = await getIntentAnalysis(intentPrompt, apiKey, '1. 意図分析ステップ');
 
     // 追加質問生成
     const followUpPrompt = `
@@ -203,7 +203,7 @@ async function handleConsultation(userMessageData, apiKey) {
     
     追加質問案: ~~~`;
 
-    const followUpContent = await getGPTResponse(followUpPrompt, apiKey, '2. 追加質問生成ステップ');
+    const followUpContent = await getFollowUpQuestion(followUpPrompt, apiKey, '2. 追加質問生成ステップ');
 
     // 最終的な回答生成
     const finalPrompt = `${KUKU_PROFILE}
@@ -233,7 +233,7 @@ async function handleConsultation(userMessageData, apiKey) {
     ユーザーへの返答: ~~~`;
 
     return { 
-        reply: await getGPTResponse(finalPrompt, apiKey, '3. 最終回答生成ステップ'),
+        reply: await getFinalResponse(finalPrompt, apiKey, '3. 最終回答生成ステップ'),
         intentContent 
     };
 }
@@ -262,7 +262,7 @@ async function handleInformation(userMessageData, apiKey) {
     
     意図の分析: ~~~`;
 
-    const intentContent = await getGPTResponse(intentPrompt, apiKey, '1. 意図分析ステップ');
+    const intentContent = await getIntentAnalysis(intentPrompt, apiKey, '1. 意図分析ステップ');
 
     // 2. 情報提供の最終的な回答生成
     const finalPrompt = `${KUKU_PROFILE}
@@ -288,7 +288,7 @@ async function handleInformation(userMessageData, apiKey) {
     
     ユーザーへの返答: ~~~`;
 
-    const reply = await getGPTResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
+    const reply = await getFinalResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
     return { reply, intentContent };
 }
 
@@ -318,7 +318,7 @@ async function handleComplaint(userMessageData, apiKey) {
     
     意図の分析: ~~~`;
 
-    const intentContent = await getGPTResponse(intentPrompt, apiKey, '1. 意図分析ステップ');
+    const intentContent = await getIntentAnalysis(intentPrompt, apiKey, '1. 意図分析ステップ');
 
     // 2. 共感的な返答の生成
     const finalPrompt = `${KUKU_PROFILE}
@@ -341,7 +341,7 @@ async function handleComplaint(userMessageData, apiKey) {
     
     ユーザーへの返答: ~~~`;
 
-    const reply = await getGPTResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
+    const reply = await getFinalResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
     return { reply, intentContent };
 }
 
@@ -371,7 +371,7 @@ async function handleApproval(userMessageData, apiKey) {
     
     意図の分析: ~~~`;
 
-    const intentContent = await getGPTResponse(intentPrompt, apiKey, '1. 意図分析ステップ');
+    const intentContent = await getIntentAnalysis(intentPrompt, apiKey, '1. 意図分析ステップ');
 
     // 2. 承認メッセージの生成
     const finalPrompt = `${KUKU_PROFILE}
@@ -408,7 +408,7 @@ async function handleApproval(userMessageData, apiKey) {
     
     ユーザーへの返答: ~~~`;
 
-    const reply = await getGPTResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
+    const reply = await getFinalResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
     return { reply, intentContent };
 }
 
@@ -439,7 +439,7 @@ async function handleDiscussion(userMessageData, apiKey) {
     
     意図の分析: ~~~`;
 
-    const intentContent = await getGPTResponse(intentPrompt, apiKey, '1. 意図分析ステップ');
+    const intentContent = await getIntentAnalysis(intentPrompt, apiKey, '1. 意図分析ステップ');
 
     // 2. 建設的な議論の展開
     const finalPrompt = `${KUKU_PROFILE}
@@ -474,7 +474,7 @@ async function handleDiscussion(userMessageData, apiKey) {
     
     ユーザーへの返答: ~~~`;
 
-    const reply = await getGPTResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
+    const reply = await getFinalResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
     return { reply, intentContent };
 }
 
@@ -503,7 +503,7 @@ async function handleChatting(userMessageData, apiKey) {
     
     意図の分析: ~~~`;
 
-    const intentContent = await getGPTResponse(intentPrompt, apiKey, '1. 意図分析ステップ');
+    const intentContent = await getIntentAnalysis(intentPrompt, apiKey, '1. 意図分析ステップ');
 
     // 2. 自然な会話の生成
     const finalPrompt = `${KUKU_PROFILE}
@@ -531,7 +531,7 @@ async function handleChatting(userMessageData, apiKey) {
     
     ユーザーへの返答: ~~~`;
 
-    const reply = await getGPTResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
+    const reply = await getFinalResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
     return { reply, intentContent };
 }
 
@@ -673,9 +673,9 @@ export default async function handler(req, res) {
     }
 }
 
-// 共通のGPT応答取得関数は変更なし
-async function getGPTResponse(prompt, apiKey, stage = 'Unknown') {
-    console.group(`\n=== ${stage} ===`);
+// 意図推定用のGPT応答関数
+async function getIntentAnalysis(prompt, apiKey) {
+    console.group('\n=== 意図分析ステップ ===');
     console.log('プロンプト内容:');
     console.log(prompt);
 
@@ -689,8 +689,8 @@ async function getGPTResponse(prompt, apiKey, stage = 'Unknown') {
             body: JSON.stringify({
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: prompt }],
-                temperature: 0.7,
-                max_tokens: 150
+                temperature: 0.5,  // より正確な分析のため低めに
+                max_tokens: 200    // 詳細な分析のため増量
             })
         });
 
@@ -701,15 +701,145 @@ async function getGPTResponse(prompt, apiKey, stage = 'Unknown') {
         const data = await response.json();
         const result = data.choices[0].message.content.trim();
         
-        console.log('\nAIからの応答:');
+        console.log('\nAIからの意図分析:');
         console.log(result);
         console.groupEnd();
         
         return result;
 
     } catch (error) {
-        console.error('APIエラー:', error);
+        console.error('意図分析エラー:', error);
         console.groupEnd();
         throw error;
     }
 }
+
+// 追加質問生成用のGPT応答関数
+async function getFollowUpQuestion(prompt, apiKey) {
+    console.group('\n=== 追加質問生成ステップ ===');
+    console.log('プロンプト内容:');
+    console.log(prompt);
+
+    try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.6,  // 適度な創造性のため
+                max_tokens: 100    // 質問は簡潔に
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`GPT APIエラー: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const result = data.choices[0].message.content.trim();
+        
+        console.log('\n生成された追加質問:');
+        console.log(result);
+        console.groupEnd();
+        
+        return result;
+
+    } catch (error) {
+        console.error('追加質問生成エラー:', error);
+        console.groupEnd();
+        throw error;
+    }
+}
+
+// 最終回答生成用のGPT応答関数
+async function getFinalResponse(prompt, apiKey) {
+    console.group('\n=== 最終回答生成ステップ ===');
+    console.log('プロンプト内容:');
+    console.log(prompt);
+
+    try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.7,  // 自然な応答のため
+                max_tokens: 500    // 十分な長さの回答のため増量
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`GPT APIエラー: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const result = data.choices[0].message.content.trim();
+        
+        console.log('\n生成された最終回答:');
+        console.log(result);
+        console.groupEnd();
+        
+        return result;
+
+    } catch (error) {
+        console.error('最終回答生成エラー:', error);
+        console.groupEnd();
+        throw error;
+    }
+}
+
+// まとめ生成用のGPT応答関数
+async function generateConversationSummary(prompt, apiKey) {
+    console.group('\n=== まとめ生成ステップ ===');
+    console.log('プロンプト内容:');
+    console.log(prompt);
+
+    try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.4,  // 一貫性のため低めに
+                max_tokens: 300    // まとめ用に適度な長さ
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`GPT APIエラー: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const result = data.choices[0].message.content.trim();
+        
+        console.log('\n生成されたまとめ:');
+        console.log(result);
+        console.groupEnd();
+        
+        return result;
+
+    } catch (error) {
+        console.error('まとめ生成エラー:', error);
+        console.groupEnd();
+        throw error;
+    }
+}
+
+export {
+    getIntentAnalysis,
+    getFollowUpQuestion,
+    getFinalResponse,
+    generateConversationSummary
+};
