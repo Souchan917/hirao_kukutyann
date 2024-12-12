@@ -224,14 +224,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-// メッセージ追加関数
-function addMessage(content, type, messageType = null) {  // messageType パラメータを追加
+// メッセージ追加関数の更新
+function addMessage(content, type, messageType = null) {
     const messageDiv = document.createElement("div");
     messageDiv.className = type === "user" ? "user-message" : "ai-message";
-    messageDiv.textContent = type === "ai" ? JSON.parse(content).message : content;  // AI の場合は message を取り出す
-    chatContainer.appendChild(messageDiv);
+    
+    try {
+        if (type === "ai") {
+            const parsedContent = JSON.parse(content);
+            // AIの返答を整形して改行を保持
+            messageDiv.textContent = parsedContent.message
+                .split('\\n').join('\n')  // バックスラッシュ付きの改行を実際の改行に変換
+                .replace(/\n\n+/g, '\n\n'); // 連続する改行を最大2つまでに制限
+        } else {
+            // ユーザーメッセージの改行を保持
+            messageDiv.textContent = content;
+        }
+    } catch (e) {
+        console.error("メッセージのパース失敗:", e);
+        messageDiv.textContent = type === "ai" ? "メッセージの表示に失敗しました" : content;
+    }
 
-    // セッションデータに追加（分類結果も含める）
+    // セッションデータに追加
     const messageData = {
         content: content,
         type: type,
@@ -241,31 +255,20 @@ function addMessage(content, type, messageType = null) {  // messageType パラ�
     if (type === "ai") {
         try {
             const parsedContent = JSON.parse(content);
-            messageData.messageType = parsedContent.messageType;  // 分類結果を保存
+            messageData.messageType = parsedContent.messageType;
         } catch (e) {
-            console.log("メッセージのパースに失敗:", e);
+            console.log("メッセージ種別のパースに失敗:", e);
         }
     }
 
     state.sessionData.messages.push(messageData);
-
+    chatContainer.appendChild(messageDiv);
+    
     if (type === "ai") {
-        state.lastMessageEvaluated = false;
-        const ratingContainer = createRatingContainer();
-        const ratingText = createRatingText();
-        const buttonsContainer = createButtonsContainer();
-        const { goodBtn, badBtn } = createRatingButtons();
-
-        buttonsContainer.appendChild(goodBtn);
-        buttonsContainer.appendChild(badBtn);
-        ratingContainer.appendChild(ratingText);
-        ratingContainer.appendChild(buttonsContainer);
-        chatContainer.appendChild(ratingContainer);
-
-        questionInput.disabled = true;
-        sendButton.disabled = true;
+        addRatingButtons(messageDiv);
     }
 
+    // 自動スクロール
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
