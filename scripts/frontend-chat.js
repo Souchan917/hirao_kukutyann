@@ -53,9 +53,7 @@ let state = {
     sessionData: {
         messages: [],
         ratings: [],
-        startTime: new Date(),
-        messageTypes: [],    // 空配列として初期化
-        intentAnalysis: []   // 空配列として初期化
+        startTime: new Date()
     }
 };
 
@@ -209,33 +207,19 @@ function setupRatingButtonEvents(goodBtn, badBtn) {
     badBtn.onclick = async () => await handleRating('bad', content, badBtn, goodBtn);
 }
 
-// addMessage 関数を修正
-
-function addMessage(content, type, messageType = null, intentContent = null) {
+// メッセージ追加関数
+function addMessage(content, type) {
     const messageDiv = document.createElement("div");
     messageDiv.className = type === "user" ? "user-message" : "ai-message";
     messageDiv.textContent = content;
     chatContainer.appendChild(messageDiv);
 
-    // メッセージデータを作成
-    const messageData = {
+    // セッションデータに追加（分類結果も含める）
+    state.sessionData.messages.push({
         content: content,
         type: type,
         timestamp: new Date()
-    };
-
-    // 分類情報とAIの意図分析を保存（AIメッセージの場合）
-    if (type === "ai" && messageType) {
-        messageData.messageType = messageType;
-        state.sessionData.messageTypes[content] = messageType;
-    }
-    if (type === "ai" && intentContent) {
-        messageData.intentContent = intentContent;
-        state.sessionData.intentAnalysis[content] = intentContent;
-    }
-
-    // セッションデータに追加
-    state.sessionData.messages.push(messageData);
+    });
 
     if (type === "ai") {
         state.lastMessageEvaluated = false;
@@ -256,8 +240,8 @@ function addMessage(content, type, messageType = null, intentContent = null) {
 
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
-// sendMessage 関数を修正
 
+// メッセージ送信関数
 async function sendMessage() {
     if (state.isSubmitting || !state.lastMessageEvaluated) {
         if (!state.lastMessageEvaluated) {
@@ -302,12 +286,12 @@ async function sendMessage() {
 
         const data = await response.json();
         
+        
         if (data.summary) {
             summaryManager.saveSummary(data.summary);
         }
 
-        // 分類情報とともにメッセージを追加
-        addMessage(data.reply, "ai", data.type, data.intentContent);
+        addMessage(data.reply, "ai");
         await saveMessage(data.reply, "ai", sessionId);
 
     } catch (error) {
@@ -403,11 +387,9 @@ function setupRatingButtons() {
     }
 }
 
-// submitSurvey 関数を更新
 async function submitSurvey(event) {
     event.preventDefault();
 
-    // 未回答チェック（既存のコード）
     const unansweredCategories = [];
     if (!state.surveyAnswers.visitCount) unansweredCategories.push('利用回数');
     if (state.surveyAnswers.satisfaction === 0) unansweredCategories.push('満足度');
@@ -430,62 +412,30 @@ async function submitSurvey(event) {
 
         const sessionId = getOrCreateSessionId();
 
-        // 従来のアンケートデータ保存（既存の処理を維持）
+        // セッション全体のサマリーデータを作成
+        const summaryData = {
+            sessionId: sessionId,
+            conversationSummary: summaryManager.getCurrentSummary(),
+            chatHistory: state.sessionData.messages,
+            ratings: state.sessionData.ratings,
+            surveyAnswers: state.surveyAnswers,
+            totalMessages: state.sessionData.messages.length,
+            totalRatings: state.sessionData.ratings.length,
+            startTime: state.sessionData.startTime,
+            endTime: new Date()
+        };
+
+        // 通常のアンケートデータ保存
         const surveyData = {
             timestamp: new Date().toISOString(),
             answers: { ...state.surveyAnswers },
             sessionId: sessionId,
-
+            conversationSummary: summaryManager.getCurrentSummary()
         };
         await saveMessage(JSON.stringify(surveyData), "survey", sessionId);
 
-        // 包括的なセッションデータの作成
-        const comprehensiveSessionData = {
-            // セッション基本情報
-            sessionId: sessionId,
-            sessionStartTime: state.sessionData.startTime.toISOString(),
-            sessionEndTime: new Date().toISOString(),
-            
-            // チャット履歴
-            chatHistory: state.sessionData.messages.map(msg => ({
-                content: msg.content,
-                type: msg.type,
-                timestamp: msg.timestamp.toISOString()
-            })),
-            
-            // 評価履歴
-            ratings: state.sessionData.ratings.map(rating => ({
-                ...rating,
-                timestamp: rating.timestamp // すでにISOString形式の場合は変換不要
-            })),
-            
-            // アンケート回答
-            surveyAnswers: {
-                ...state.surveyAnswers,
-                submissionTime: new Date().toISOString()
-            },
-            
-            // 会話サマリー
-            conversationSummary: summaryManager.getCurrentSummary(),
-            
-            // 統計情報
-            stats: {
-                totalMessages: state.sessionData.messages.length,
-                messagesByType: {
-                    user: state.sessionData.messages.filter(m => m.type === "user").length,
-                    ai: state.sessionData.messages.filter(m => m.type === "ai").length
-                },
-                totalRatings: state.sessionData.ratings.length,
-                goodRatings: state.sessionData.ratings.filter(r => r.rating === "good").length,
-                badRatings: state.sessionData.ratings.filter(r => r.rating === "bad").length,
-                sessionDuration: Math.round(
-                    (new Date() - state.sessionData.startTime) / 1000 / 60 // 分単位
-                )
-            }
-        };
-
-        // 包括的なデータを保存
-        await saveSummaryData(sessionId, comprehensiveSessionData);
+        // セッション全体のサマリーを保存
+        await saveSummaryData(sessionId, summaryData);
 
         alert("アンケートにご協力いただき、ありがとうございました。");
         resetSurveyUI();
