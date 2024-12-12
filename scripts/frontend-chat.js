@@ -476,39 +476,34 @@ async function submitSurvey(event) {
         };
 
         // 完全なセッションサマリーデータの作成
+
         const summaryData = {
             sessionId: sessionId,
-            metadata: {
-                startTime: state.sessionData.startTime.toISOString(),
-                endTime: new Date().toISOString(),
-                totalDuration: Math.round((new Date() - state.sessionData.startTime) / 1000),
-                platform: navigator.platform,
-                userAgent: navigator.userAgent
-            },
-            conversation: {
-                summary: summaryManager.getCurrentSummary(),
-                stats: conversationStats,
-                history: enhancedChatHistory
-            },
-            interactions: {
-                messages: enhancedChatHistory,
-                ratings: state.sessionData.ratings
-            },
-            classifications: {
-                breakdown: classificationCounts,
-                messageTypes: enhancedChatHistory
-                    .filter(msg => msg.type === "ai")
-                    .map(msg => ({
-                        timestamp: msg.timestamp,
-                        type: msg.messageType
-                    }))
-            },
-            userFeedback: {
-                ratings: state.sessionData.ratings,
-                surveyAnswers: {
-                    ...state.surveyAnswers,
-                    submitTime: new Date().toISOString()
+            // チャット履歴（分類結果を含む）
+            chatHistory: state.sessionData.messages.map(msg => {
+                if (msg.type === "ai") {
+                    try {
+                        const messageContent = JSON.parse(msg.content);
+                        return {
+                            content: messageContent.message,
+                            type: msg.type,
+                            timestamp: msg.timestamp,
+                            messageType: messageContent.messageType // 分類結果（相談、情報、愚痴など）
+                        };
+                    } catch (e) {
+                        return msg;
+                    }
                 }
+                return msg;
+            }),
+            
+            // チャットの評価履歴
+            ratings: state.sessionData.ratings,
+            
+            // アンケートの回答
+            surveyAnswers: {
+                ...state.surveyAnswers,
+                submitTimestamp: new Date().toISOString() // アンケート送信時刻
             }
         };
 
