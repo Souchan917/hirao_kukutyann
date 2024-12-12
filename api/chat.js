@@ -32,6 +32,7 @@ const SUMMARY_PROMPT = `あなたは会話分析の専門家です。以下の�
 3. ユーザーの主な関心事や問題点を明確にする
 4. ククちゃんのアドバイスや対応の要点を含める
 5. 会話の流れが分かるように構成する
+6. 何回目のチャットであるか記録する
 
 新しい会話まとめ: ~~~`;
 
@@ -153,7 +154,7 @@ async function handleConsultation(userMessageData, apiKey) {
     - 状況の理解が浅い場合：
         - 相手の状況をより理解するために、1つ質問を含めてください
         - 共感を示しつつ、50~80文字程度の短い返答を心がけてください
-    - ユーザーの状況をある程度理解できている
+    - チャット回数が３回以上である。または、ユーザーの状況をある程度理解できている。
         - 具体的なアドバイスを含む200文字程度の文章を作成してください
     - いずれの場合も以下を守ってください：
         - 文章に合わせて絵文字や「！」を付けてください
@@ -603,7 +604,7 @@ async function getGPTResponse(prompt, apiKey, stage = 'Unknown') {
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.7,
-                max_tokens: 200
+                max_tokens: 180
             })
         });
 
