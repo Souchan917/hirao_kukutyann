@@ -19,6 +19,7 @@ const resetButton = document.getElementById("resetChat");
 const endChatButton = document.getElementById("endChat");
 const surveyForm = document.getElementById("survey-form");
 const submitSurveyButton = document.getElementById("submitSurvey");
+const loadingState = document.getElementById("loading-state");
 
 // 評価ボタングループの取得
 const satisfactionButtons = surveyForm.querySelectorAll('input[name="satisfaction"]');
@@ -221,7 +222,7 @@ function addMessage(content, type) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// メッセージ送信関数
+// メッセージ送信関数を改善
 async function sendMessage() {
     if (state.isSubmitting || !state.lastMessageEvaluated) {
         if (!state.lastMessageEvaluated) {
@@ -239,6 +240,9 @@ async function sendMessage() {
     state.isSubmitting = true;
     questionInput.disabled = true;
     sendButton.disabled = true;
+    
+    // ローディング表示を開始
+    loadingState.style.display = "flex";
 
     try {
         const sessionId = getOrCreateSessionId();
@@ -265,7 +269,6 @@ async function sendMessage() {
 
         const data = await response.json();
         
-        // 会話まとめの更新
         if (data.summary) {
             summaryManager.saveSummary(data.summary);
         }
@@ -279,6 +282,8 @@ async function sendMessage() {
     } finally {
         state.isSubmitting = false;
         questionInput.value = "";
+        // ローディング表示を終了
+        loadingState.style.display = "none";
     }
 }
 
@@ -465,7 +470,7 @@ function debugState() {
     });
 }
 
-// イベントリスナーの設定
+// イベントリスナーの設定を改善
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOMContentLoaded イベント発火");
     setupRatingButtons();
@@ -481,10 +486,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (questionInput) {
-        questionInput.addEventListener("keypress", (e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
+        // Enterキーの処理を変更
+        questionInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                // Ctrl+Enterで送信
+                if (e.ctrlKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
             }
         });
         console.log("入力フィールドのリスナーを設定");
@@ -502,7 +511,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     console.log("イベントリスナーの設定完了");
 });
-
 // ページロード時の処理
 window.addEventListener('load', () => {
     console.log("ページロード処理開始");
