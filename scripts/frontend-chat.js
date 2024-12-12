@@ -207,6 +207,23 @@ function setupRatingButtonEvents(goodBtn, badBtn) {
     badBtn.onclick = async () => await handleRating('bad', content, badBtn, goodBtn);
 }
 
+
+
+
+// テキストエリアの自動調整
+document.addEventListener("DOMContentLoaded", () => {
+    const textarea = document.getElementById("questionInput");
+
+    textarea.addEventListener("input", function () {
+        this.style.height = "auto"; // 高さをリセット
+        this.style.height = this.scrollHeight + "px"; // 必要な高さに設定
+    });
+});
+
+
+
+
+
 // メッセージ追加関数
 function addMessage(content, type, messageType = null) {  // messageType パラメータを追加
     const messageDiv = document.createElement("div");
@@ -605,7 +622,15 @@ function endChat() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOMContentLoaded イベント発火");
     setupRatingButtons();
-    
+    const textarea = document.getElementById("questionInput");
+
+    // テキストエリアの自動調整
+    textarea.addEventListener("input", function () {
+        this.style.height = "auto"; // 高さをリセット
+        this.style.height = this.scrollHeight + "px"; // 必要な高さに設定
+    });
+
+
     if (sendButton) {
         sendButton.addEventListener("click", sendMessage);
         console.log("送信ボタンのリスナーを設定");
