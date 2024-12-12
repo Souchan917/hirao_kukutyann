@@ -527,7 +527,7 @@ export default async function handler(req, res) {
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'system', content: classificationPrompt }],
                 temperature: 0.3,
-                max_tokens: 50
+                max_tokens: 30
             })
         });
 
@@ -729,7 +729,7 @@ async function getFinalResponse(prompt, apiKey) {
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.7,  // 自然な応答のため
-                max_tokens: 300    // 十分な長さの回答のため増量
+                max_tokens: 250    // 十分な長さの回答のため増量
             })
         });
 
@@ -782,7 +782,7 @@ async function generateConversationSummary(userMessageData, messageType, intentC
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: summaryPrompt }],
                 temperature: 0.4,  // 一貫性のため低めに
-                max_tokens: 200    // まとめ用に適度な長さ
+                max_tokens: 180    // まとめ用に適度な長さ
             })
         });
 
