@@ -456,7 +456,7 @@ async function handleChatting(userMessageData, apiKey) {
     1. 話題への共感や興味を示す
     2. 関連する経験や考えを1-2つ共有
     3. 相手の話を引き出す質問を1つ含める
-    4. 150文字程度を目安に
+    4. 150文字程度を目安に会話を膨らませる
     
     注意点：
     - 押しつけがましくならない
@@ -604,7 +604,7 @@ async function getGPTResponse(prompt, apiKey, stage = 'Unknown') {
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.7,
-                max_tokens: 180
+                max_tokens: 175
             })
         });
 
