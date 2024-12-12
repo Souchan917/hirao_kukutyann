@@ -647,7 +647,7 @@ async function getIntentAnalysis(prompt, apiKey) {
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.5,  // より正確な分析のため低めに
-                max_tokens: 200    // 詳細な分析のため増量
+                max_tokens: 250    // 詳細な分析のため増量
             })
         });
 
