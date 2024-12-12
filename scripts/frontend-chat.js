@@ -435,7 +435,7 @@ async function submitSurvey(event) {
             timestamp: new Date().toISOString(),
             answers: { ...state.surveyAnswers },
             sessionId: sessionId,
-            conversationSummary: summaryManager.getCurrentSummary()
+
         };
         await saveMessage(JSON.stringify(surveyData), "survey", sessionId);
 
