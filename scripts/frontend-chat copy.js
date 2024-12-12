@@ -1,3 +1,5 @@
+// frontend-chat.js
+
 import { saveMessage, getChatHistory } from "../libs/firebase.js";
 
 console.log("=== frontend-chat.js 読み込み開始 ===");
@@ -25,14 +27,13 @@ const feedbackTextarea = document.getElementById('feedback');
 
 // セッション管理用の定数
 const SESSION_STORAGE_KEY = 'kukuchan_session_id';
-const CHAT_SUMMARY_KEY = 'kukuchan_chat_summary';
+const CHAT_HISTORY_KEY = 'kukuchan_chat_history';
 
 // メッセージ評価の状態管理
-let lastMessageEvaluated = true;
-let isSubmitting = false;
-let currentSummary = '';
+let lastMessageEvaluated = true;  // メッセージ評価状態の追跡
 
-// アンケート回答の状態管理
+// 状態管理
+let isSubmitting = false;
 let surveyAnswers = {
     satisfaction: 0,
     personalization: 0,
@@ -45,10 +46,57 @@ let surveyAnswers = {
     feedback: ''
 };
 
+
+
+// ローカルストレージ関連の関数
+function saveLocalChatHistory(content, type) {
+    try {
+        let history = [];
+        const savedHistory = localStorage.getItem(CHAT_HISTORY_KEY);
+        if (savedHistory) {
+            history = JSON.parse(savedHistory);
+        }
+        
+        history.push({
+            content,
+            type,
+            timestamp: new Date().toISOString()
+        });
+        
+        // 最新6件（3往復分）のみ保持
+        if (history.length > 10) {
+            history = history.slice(-10);
+        }
+        
+        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
+        console.log('ローカルストレージに保存しました:', history);
+    } catch (error) {
+        console.error('ローカル履歴の保存中にエラー:', error);
+    }
+}
+
+function getLocalChatHistory() {
+    try {
+        const history = localStorage.getItem(CHAT_HISTORY_KEY);
+        return history ? JSON.parse(history) : [];
+    } catch (error) {
+        console.error('ローカル履歴の取得中にエラー:', error);
+        return [];
+    }
+}
+
+function clearLocalChatHistory() {
+    localStorage.removeItem(CHAT_HISTORY_KEY);
+    console.log('ローカル履歴をクリアしました');
+}
+
 // セッション管理の関数
 function getOrCreateSessionId(forceNew = false) {
+    // 新しいセッションを強制的に作成する場合
     if (forceNew) {
-        clearConversationSummary();
+        // まずローカルストレージのチャット履歴をクリア
+        clearLocalChatHistory();
+        
         const newSessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         sessionStorage.setItem(SESSION_STORAGE_KEY, newSessionId);
         document.cookie = `sessionId=${newSessionId}; path=/`;
@@ -59,7 +107,9 @@ function getOrCreateSessionId(forceNew = false) {
     let sessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
     
     if (!sessionId) {
-        clearConversationSummary();
+        // 新しいセッションIDが必要な場合も履歴をクリア
+        clearLocalChatHistory();
+        
         sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
         document.cookie = `sessionId=${sessionId}; path=/`;
@@ -78,8 +128,11 @@ function addMessage(content, type) {
     messageDiv.textContent = content;
     chatContainer.appendChild(messageDiv);
 
+    // ローカルストレージに保存
+    saveLocalChatHistory(content, type);
+
     if (type === "ai") {
-        lastMessageEvaluated = false;
+        lastMessageEvaluated = false; // AI応答時に評価状態をリセット
         const ratingContainer = createRatingContainer();
         const ratingText = createRatingText();
         const buttonsContainer = createButtonsContainer();
@@ -91,6 +144,7 @@ function addMessage(content, type) {
         ratingContainer.appendChild(buttonsContainer);
         chatContainer.appendChild(ratingContainer);
 
+        // 入力を無効化
         questionInput.disabled = true;
         sendButton.disabled = true;
     }
@@ -111,6 +165,13 @@ function createRatingContainer() {
     `;
     return container;
 }
+
+
+
+
+
+
+
 
 function createRatingText() {
     const text = document.createElement("div");
@@ -221,10 +282,18 @@ async function sendMessage() {
 
     try {
         const sessionId = getOrCreateSessionId();
+        
+        // メッセージを表示
         addMessage(message, "user");
-        await saveMessage(message, "user", sessionId);
 
-        const currentSummary = localStorage.getItem(CHAT_SUMMARY_KEY) || '';
+        // 会話履歴を取得
+        const history = getLocalChatHistory();
+        const conversationHistory = history
+            .map(msg => `${msg.type === 'user' ? 'ユーザー' : 'ククちゃん'}: ${msg.content}`)
+            .join('\n');
+
+        // Firebaseにも保存
+        await saveMessage(message, "user", sessionId);
 
         const response = await fetch(apiUrl, {
             method: "POST",
@@ -234,7 +303,7 @@ async function sendMessage() {
             },
             body: JSON.stringify({ 
                 userMessage: message,
-                conversationSummary: currentSummary
+                conversationHistory: conversationHistory
             })
         });
 
@@ -244,13 +313,6 @@ async function sendMessage() {
 
         const data = await response.json();
         addMessage(data.reply, "ai");
-        
-        if (data.summary) {
-            localStorage.setItem(CHAT_SUMMARY_KEY, data.summary);
-            currentSummary = data.summary;
-            console.log('新しい会話まとめを保存:', data.summary);
-        }
-
         await saveMessage(data.reply, "ai", sessionId);
 
     } catch (error) {
@@ -259,8 +321,10 @@ async function sendMessage() {
     } finally {
         isSubmitting = false;
         questionInput.value = "";
+        // 注意: ここではinput/buttonを有効化しない（評価待ち）
     }
 }
+
 
 // 評価処理関数
 async function handleRating(rating, content, activeBtn, inactiveBtn) {
@@ -273,9 +337,12 @@ async function handleRating(rating, content, activeBtn, inactiveBtn) {
         }), "rating", sessionId);
         
         const container = activeBtn.closest('.rating-container');
+        
+        // 評価コンテナを最小化したものに置き換え
         const minimizedRating = createMinimizedRating(rating);
         container.parentNode.replaceChild(minimizedRating, container);
         
+        // 入力を有効化
         lastMessageEvaluated = true;
         questionInput.disabled = false;
         sendButton.disabled = false;
@@ -284,13 +351,6 @@ async function handleRating(rating, content, activeBtn, inactiveBtn) {
         console.error("評価保存エラー:", error);
         alert("評価の保存に失敗しました。もう一度お試しください。");
     }
-}
-
-// 会話まとめ管理関数
-function clearConversationSummary() {
-    localStorage.removeItem(CHAT_SUMMARY_KEY);
-    currentSummary = '';
-    console.log('会話まとめをクリアしました');
 }
 
 // チャット終了関数
@@ -304,16 +364,6 @@ function endChat() {
     sendButton.disabled = true;
     surveyForm.style.display = 'block';
     surveyForm.scrollIntoView({ behavior: 'smooth' });
-}
-
-// チャットリセット関数
-function resetChat() {
-    if (confirm("チャット履歴をリセットしてもよろしいですか？")) {
-        chatContainer.innerHTML = "";
-        clearConversationSummary();
-        getOrCreateSessionId(true);
-        lastMessageEvaluated = true;
-    }
 }
 
 // アンケート関連の関数
@@ -340,6 +390,7 @@ function setupRatingButtons() {
         });
     });
 
+    // フィードバックテキストエリアのイベントリスナー
     if (feedbackTextarea) {
         feedbackTextarea.addEventListener('input', function() {
             surveyAnswers.feedback = this.value.trim();
@@ -386,8 +437,7 @@ async function submitSurvey(event) {
                 experience: surveyAnswers.experience,
                 feedback: surveyAnswers.feedback
             },
-            sessionId: sessionId,
-            conversationSummary: localStorage.getItem(CHAT_SUMMARY_KEY) || ''
+            sessionId: sessionId
         };
 
         console.log("Firebaseに送信するデータ:", surveyData);
@@ -418,6 +468,7 @@ function resetSurveyUI() {
         button.style.backgroundColor = '';
     });
 
+    // フィードバックテキストエリアのリセット
     if (feedbackTextarea) {
         feedbackTextarea.value = '';
     }
@@ -434,9 +485,16 @@ function resetSurveyUI() {
         feedback: ''
     };
 
-    // 新しいセッションの開始
     getOrCreateSessionId(true);
-    clearConversationSummary();
+}
+
+function resetChat() {
+    if (confirm("チャット履歴をリセットしてもよろしいですか？")) {
+        chatContainer.innerHTML = "";
+        clearLocalChatHistory();
+        getOrCreateSessionId(true);
+        lastMessageEvaluated = true; // 評価状態もリセット
+    }
 }
 
 // チャット履歴読み込み関数
@@ -453,13 +511,6 @@ async function loadChatHistory() {
                 }
             });
         }
-
-        // 保存された会話まとめを読み込む
-        const savedSummary = localStorage.getItem(CHAT_SUMMARY_KEY);
-        if (savedSummary) {
-            currentSummary = savedSummary;
-            console.log('保存された会話まとめを読み込みました:', currentSummary);
-        }
     } catch (error) {
         console.error("チャット履歴の読み込みエラー:", error);
     }
@@ -467,8 +518,8 @@ async function loadChatHistory() {
 
 // デバッグ用関数
 function debugLocalStorage() {
-    const summary = localStorage.getItem(CHAT_SUMMARY_KEY);
-    console.log('現在の会話まとめ:', summary);
+    const history = getLocalChatHistory();
+    console.log('現在のローカルストレージの内容:', history);
 }
 
 // イベントリスナーの設定
@@ -498,6 +549,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (endChatButton) {
         endChatButton.addEventListener("click", endChat);
         console.log("終了ボタンのリスナーを設定");
+    } else {
+        console.error("終了ボタンが見つかりません");
     }
 
     if (submitSurveyButton) {
@@ -521,15 +574,24 @@ window.addEventListener('load', () => {
     loadChatHistory();
 });
 
-// ストレージ変更の監視
+// visibility変更時の処理
+// document.addEventListener('visibilitychange', () => {
+//     if (!document.hidden) {
+//         console.log("タブがアクティブになりました");
+//         getOrCreateSessionId(true);
+//         chatContainer.innerHTML = '';
+//         loadChatHistory();
+//     }
+// });
+
+// セッションストレージの変更を監視
 window.addEventListener('storage', (event) => {
-    if (event.key === SESSION_STORAGE_KEY || event.key === CHAT_SUMMARY_KEY) {
-        console.log("ストレージの変更を検出");
+    if (event.key === SESSION_STORAGE_KEY) {
+        console.log("セッションストレージの変更を検出");
         loadChatHistory();
     }
 });
 
-// エクスポート
-export { getOrCreateSessionId, resetChat, endChat };
-
 console.log("=== frontend-chat.js 読み込み完了 ===");
+
+export { getOrCreateSessionId, resetChat, endChat }
