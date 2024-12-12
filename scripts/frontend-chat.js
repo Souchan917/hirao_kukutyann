@@ -214,10 +214,11 @@ function addMessage(content, type) {
     messageDiv.textContent = content;
     chatContainer.appendChild(messageDiv);
 
-    // セッションデータに追加
+    // セッションデータに追加（分類結果も含める）
     state.sessionData.messages.push({
         content: content,
         type: type,
+        messageType: messageType,
         timestamp: new Date()
     });
 
@@ -285,6 +286,14 @@ async function sendMessage() {
         }
 
         const data = await response.json();
+
+        // ここで分類結果も保存するように修正
+        state.sessionData.messages.push({
+            content: data.reply,
+            type: 'ai',
+            messageType: data.type,  // 分類結果を保存
+            timestamp: new Date()
+        });
         
         if (data.summary) {
             summaryManager.saveSummary(data.summary);
