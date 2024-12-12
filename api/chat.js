@@ -728,8 +728,8 @@ async function getFinalResponse(prompt, apiKey) {
             body: JSON.stringify({
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: prompt }],
-                temperature: 0.5,  // 自然な応答のため
-                max_tokens: 250    // 十分な長さの回答のため増量
+                temperature: 0.6,  // 自然な応答のため
+                max_tokens: 300    // 十分な長さの回答のため増量
             })
         });
 
