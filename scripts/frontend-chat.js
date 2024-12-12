@@ -218,7 +218,6 @@ function addMessage(content, type) {
     state.sessionData.messages.push({
         content: content,
         type: type,
-        messageType: messageType,
         timestamp: new Date()
     });
 
