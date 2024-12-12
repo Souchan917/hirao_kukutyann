@@ -32,7 +32,7 @@ const SUMMARY_PROMPT = `あなたは会話分析の専門家です。以下の�
 3. ユーザーの主な関心事や問題点を明確にする
 4. ククちゃんのアドバイスや対応の要点を含める
 5. 会話の流れが分かるように構成する
-6. 何回目のチャットであるか記録する(現在の会話まとめが空白の時は1回目です)書かれている数字に+1して下さい
+6. 何回目のチャットであるか記録する(現在の会話まとめが空白の時は1回目です)
 
 新しい会話まとめ: ~~~`;
 
@@ -146,7 +146,6 @@ async function handleConsultation(userMessageData, apiKey) {
     const followUpPrompt = `
     あなたはカウンセリングの専門家です。この相談をより良く理解し適切なアドバイスをするために、
     最も重要な1個の質問を提案してください。
-    情報がいくつか集まっている場合は追加の質問は必要ありません
 
     ### 会話のまとめ ###
     ${currentSummary}
@@ -171,17 +170,16 @@ async function handleConsultation(userMessageData, apiKey) {
     具体的な解決策を含む返答を生成してください。
 
        具体的な解決策を含む返答を生成してください。
-    - 会話のまとめ回数が1回目以下のチャットである。または、状況の理解が浅い場合：
+    - 状況の理解が浅い場合：
         - 相手の状況をより理解するために、1つ質問を含めてください
         - 共感を示しつつ、50~80文字程度の短い返答を心がけてください
-    - 会話のまとめ回数が2回目以上のチャットである。
-        - 具体的なアドバイスを含む200文字程度の文章を作成してください。この時追加の質問は絶対に入れないでください。
+    - チャット回数が1回以上である。または、ユーザーの状況をある程度理解できている。
+        - 具体的なアドバイスを含む200文字程度の文章を作成してください
     - いずれの場合も以下を守ってください：
         - 文章に合わせて絵文字や「！」を付けてください
         - 相手に共感するコメントをしたり、相手の気持ちを代弁してください
         - 親しみやすい口調を維持してください
         - 会話のまとめを参考に適切な返答をしてください
-        - 重要な部分は「」で囲みわかりやすくしてください
     
     ユーザーの相談: '${message}'
     意図の分析: '${intentContent}'
@@ -527,7 +525,7 @@ export default async function handler(req, res) {
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'system', content: classificationPrompt }],
                 temperature: 0.3,
-                max_tokens: 30
+                max_tokens: 50
             })
         });
 
@@ -647,7 +645,7 @@ async function getIntentAnalysis(prompt, apiKey) {
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.5,  // より正確な分析のため低めに
-                max_tokens: 250    // 詳細な分析のため増量
+                max_tokens: 200    // 詳細な分析のため増量
             })
         });
 
@@ -729,7 +727,7 @@ async function getFinalResponse(prompt, apiKey) {
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.7,  // 自然な応答のため
-                max_tokens: 250    // 十分な長さの回答のため増量
+                max_tokens: 300    // 十分な長さの回答のため増量
             })
         });
 
@@ -782,7 +780,7 @@ async function generateConversationSummary(userMessageData, messageType, intentC
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: summaryPrompt }],
                 temperature: 0.4,  // 一貫性のため低めに
-                max_tokens: 180    // まとめ用に適度な長さ
+                max_tokens: 300    // まとめ用に適度な長さ
             })
         });
 
