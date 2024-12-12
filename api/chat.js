@@ -645,7 +645,7 @@ async function getIntentAnalysis(prompt, apiKey) {
                 model: 'gpt-4o-mini',
                 // model: 'gpt-3.5-turbo-1106',  // gpt-4o-miniから変更
                 messages: [{ role: 'user', content: prompt }],
-                temperature: 0.5,  // より正確な分析のため低めに
+                temperature: 0.3,  // より正確な分析のため低めに
                 max_tokens: 175    // 詳細な分析のため増量
             })
         });
@@ -687,8 +687,8 @@ async function getFollowUpQuestion(prompt, apiKey) {
                 model: 'gpt-4o-mini',
                 // model: 'gpt-3.5-turbo-1106',  // gpt-4o-miniから変更
                 messages: [{ role: 'user', content: prompt }],
-                temperature: 0.5,  // 適度な創造性のため
-                max_tokens: 100    // 質問は簡潔に
+                temperature: 0.3,  // 適度な創造性のため
+                max_tokens: 50    // 質問は簡潔に
             })
         });
 
@@ -728,8 +728,8 @@ async function getFinalResponse(prompt, apiKey) {
             body: JSON.stringify({
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: prompt }],
-                temperature: 0.7,  // 自然な応答のため
-                max_tokens: 300    // 十分な長さの回答のため増量
+                temperature: 0.5,  // 自然な応答のため
+                max_tokens: 250    // 十分な長さの回答のため増量
             })
         });
 
@@ -782,7 +782,7 @@ async function generateConversationSummary(userMessageData, messageType, intentC
                 model: 'gpt-4o-mini',
                 // model: 'gpt-3.5-turbo-1106',  // gpt-4o-miniから変更
                 messages: [{ role: 'user', content: summaryPrompt }],
-                temperature: 0.3,  // 一貫性のため低めに
+                temperature: 0.2,  // 一貫性のため低めに
                 max_tokens: 150    // まとめ用に適度な長さ
             })
         });
