@@ -386,6 +386,37 @@ async function submitSurvey(event) {
     }
 }
 
+
+// frontend-chat.js の既存の関数の近くに追加
+function resetSurveySelections() {
+    // チャット関連の評価をリセット（毎回リセットする項目）
+    const resetTargets = [
+        'satisfaction',
+        'personalization',
+        'comparison',
+        'intention',
+        'visitCount'
+    ];
+
+    resetTargets.forEach(name => {
+        // name属性が一致するラジオボタンをすべて取得して選択解除
+        const radioButtons = document.querySelectorAll(`input[name="${name}"]`);
+        radioButtons.forEach(radio => {
+            radio.checked = false;
+        });
+        // 状態もリセット
+        state.surveyAnswers[name] = 0;
+    });
+
+    // フリーテキストエリアもリセット
+    if (feedbackTextarea) {
+        feedbackTextarea.value = '';
+        state.surveyAnswers.feedback = '';
+    }
+}
+
+
+
 // UI関連の関数
 function resetSurveyUI() {
     surveyForm.style.display = 'none';
@@ -393,26 +424,36 @@ function resetSurveyUI() {
     questionInput.disabled = false;
     sendButton.disabled = false;
     
-    document.querySelectorAll('.selected').forEach(button => {
-        button.classList.remove('selected');
-        button.style.backgroundColor = '';
-    });
+    // この部分を削除
+    // document.querySelectorAll('.selected').forEach(button => {
+    //     button.classList.remove('selected');
+    //     button.style.backgroundColor = '';
+    // });
 
-    if (feedbackTextarea) {
-        feedbackTextarea.value = '';
-    }
+    // 新しい関数を呼び出し
+    resetSurveySelections();
+
+    // この部分も削除（新しい関数で処理するため）
+    // if (feedbackTextarea) {
+    //     feedbackTextarea.value = '';
+    // }
+
+    // state.surveyAnswers の初期化を修正（個人情報は保持）
+    const preservedInfo = {
+        age: state.surveyAnswers.age,
+        gender: state.surveyAnswers.gender,
+        occupation: state.surveyAnswers.occupation,
+        experience: state.surveyAnswers.experience
+    };
 
     state.surveyAnswers = {
-        visitCount: '',  
         satisfaction: 0,
         personalization: 0,
         comparison: 0,
         intention: 0,
-        age: 0,
-        gender: '',
-        occupation: '',
-        experience: '',
-        feedback: ''
+        visitCount: '',
+        feedback: '',
+        ...preservedInfo  // 保持しておいた個人情報を復元
     };
 
     getOrCreateSessionId(true);
@@ -522,6 +563,7 @@ window.addEventListener('load', () => {
     
     if (!document.hidden) {
         getOrCreateSessionId(true);
+        resetSurveySelections();  // この行を追加
     }
     loadChatHistory();
 });
