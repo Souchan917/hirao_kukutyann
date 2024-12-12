@@ -286,14 +286,7 @@ async function sendMessage() {
         }
 
         const data = await response.json();
-
-        // ここで分類結果も保存するように修正
-        state.sessionData.messages.push({
-            content: data.reply,
-            type: 'ai',
-            messageType: data.type,  // 分類結果を保存
-            timestamp: new Date()
-        });
+        
         
         if (data.summary) {
             summaryManager.saveSummary(data.summary);
