@@ -312,27 +312,19 @@ async function sendMessage() {
         addMessage(aiMessageString, "ai");  // 文字列化したメッセージを渡す
         await saveMessage(aiMessageString, "ai", sessionId);
 
-        // 成功時のみメッセージをクリア
+        // 成功した場合のみ入力をクリア
         questionInput.value = "";
 
     } catch (error) {
         console.error("チャットフロー内でエラー:", error);
         addMessage("エラーが発生しました。もう一度お試しください。", "ai");
-        // エラー時は入力欄とボタンを有効に戻す
-        questionInput.disabled = false;
-        sendButton.disabled = false;
-        return; // エラー時は早期リターン
     } finally {
         state.isSubmitting = false;
+        questionInput.disabled = false;
+        sendButton.disabled = false;
         loadingState.style.display = "none";
-        // エラーがない場合は入力欄とボタンを有効に戻す
-        if (!error) {
-            questionInput.disabled = false;
-            sendButton.disabled = false;
-        }
     }
 }
-
 // 評価処理関数
 async function handleRating(rating, content, activeBtn, inactiveBtn) {
     try {
