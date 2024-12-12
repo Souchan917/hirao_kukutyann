@@ -796,13 +796,25 @@ async function getFinalResponse(prompt, apiKey) {
     }
 }
 
-// まとめ生成用のGPT応答関数
-async function generateConversationSummary(prompt, apiKey) {
+// まとめ生成用のGPT応答関数（単一の定義に統一）
+async function generateConversationSummary(userMessageData, messageType, intentContent, aiResponse, apiKey) {
     console.group('\n=== まとめ生成ステップ ===');
-    console.log('プロンプト内容:');
-    console.log(prompt);
-
+    
     try {
+        // 現在の会話まとめを取得
+        let currentSummary = userMessageData.currentSummary || '会話開始';
+        
+        // まとめ生成用のプロンプトを準備
+        const summaryPrompt = SUMMARY_PROMPT
+            .replace('{userMessage}', userMessageData.message)
+            .replace('{messageType}', messageType)
+            .replace('{intentContent}', intentContent)
+            .replace('{aiResponse}', aiResponse)
+            .replace('{currentSummary}', currentSummary);
+
+        console.log('プロンプト内容:');
+        console.log(summaryPrompt);
+
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -811,14 +823,14 @@ async function generateConversationSummary(prompt, apiKey) {
             },
             body: JSON.stringify({
                 model: 'gpt-4o-mini',
-                messages: [{ role: 'user', content: prompt }],
+                messages: [{ role: 'user', content: summaryPrompt }],
                 temperature: 0.4,  // 一貫性のため低めに
                 max_tokens: 300    // まとめ用に適度な長さ
             })
         });
 
         if (!response.ok) {
-            throw new Error(`GPT APIエラー: ${response.statusText}`);
+            throw new Error(`会話まとめ生成APIエラー: ${response.statusText}`);
         }
 
         const data = await response.json();
@@ -833,7 +845,7 @@ async function generateConversationSummary(prompt, apiKey) {
     } catch (error) {
         console.error('まとめ生成エラー:', error);
         console.groupEnd();
-        throw error;
+        return userMessageData.currentSummary || '会話まとめの生成に失敗しました';
     }
 }
 
