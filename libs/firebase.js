@@ -111,5 +111,27 @@ export async function getChatHistory(sessionId) {
     }
 }
 
+
+
+// firebase.js に追加
+export async function saveSummaryData(sessionId, summaryData) {
+    console.log('セッションサマリーを保存:', { sessionId, summaryData });
+    
+    try {
+        const summaryCollection = collection(db, "sessionSummaries");
+        const docRef = await addDoc(summaryCollection, {
+            sessionId: sessionId,
+            ...summaryData,
+            timestamp: new Date()
+        });
+        
+        console.log('セッションサマリーを保存しました。Document ID:', docRef.id);
+        return docRef.id;
+    } catch (error) {
+        console.error('セッションサマリーの保存中にエラーが発生:', error);
+        throw error;
+    }
+}
+
 // Firestoreのインスタンスをエクスポート
 export { db };

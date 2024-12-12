@@ -1,6 +1,6 @@
 // frontend-chat.js
 
-import { saveMessage, getChatHistory } from "../libs/firebase.js";
+import { saveMessage, saveSummaryData } from "../libs/firebase.js";
 
 console.log("=== frontend-chat.js 読み込み開始 ===");
 
@@ -39,7 +39,7 @@ let state = {
     lastMessageEvaluated: true,
     currentSummary: '',
     surveyAnswers: {
-        visitCount: '',  // 追加
+        visitCount: '',
         satisfaction: 0,
         personalization: 0,
         comparison: 0,
@@ -49,6 +49,11 @@ let state = {
         occupation: '',
         experience: '',
         feedback: ''
+    },
+    sessionData: {
+        messages: [],
+        ratings: [],
+        startTime: new Date()
     }
 };
 
@@ -66,7 +71,6 @@ const summaryManager = {
 
     clearSummary() {
         localStorage.removeItem(STORAGE_KEYS.SUMMARY);
-
         state.currentSummary = '';
         console.log('会話まとめをクリアしました');
     }
@@ -79,6 +83,12 @@ function getOrCreateSessionId(forceNew = false) {
         const newSessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         sessionStorage.setItem(STORAGE_KEYS.SESSION, newSessionId);
         document.cookie = `sessionId=${newSessionId}; path=/`;
+        // セッションデータもリセット
+        state.sessionData = {
+            messages: [],
+            ratings: [],
+            startTime: new Date()
+        };
         console.log("新しいセッションIDを生成:", newSessionId);
         return newSessionId;
     }
@@ -204,6 +214,13 @@ function addMessage(content, type) {
     messageDiv.textContent = content;
     chatContainer.appendChild(messageDiv);
 
+    // セッションデータに追加
+    state.sessionData.messages.push({
+        content: content,
+        type: type,
+        timestamp: new Date()
+    });
+
     if (type === "ai") {
         state.lastMessageEvaluated = false;
         const ratingContainer = createRatingContainer();
@@ -224,7 +241,7 @@ function addMessage(content, type) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// メッセージ送信関数を改善
+// メッセージ送信関数
 async function sendMessage() {
     if (state.isSubmitting || !state.lastMessageEvaluated) {
         if (!state.lastMessageEvaluated) {
@@ -242,8 +259,6 @@ async function sendMessage() {
     state.isSubmitting = true;
     questionInput.disabled = true;
     sendButton.disabled = true;
-    
-    // ローディング表示を開始
     loadingState.style.display = "flex";
 
     try {
@@ -284,7 +299,6 @@ async function sendMessage() {
     } finally {
         state.isSubmitting = false;
         questionInput.value = "";
-        // ローディング表示を終了
         loadingState.style.display = "none";
     }
 }
@@ -293,11 +307,16 @@ async function sendMessage() {
 async function handleRating(rating, content, activeBtn, inactiveBtn) {
     try {
         const sessionId = getOrCreateSessionId();
-        await saveMessage(JSON.stringify({
+        const ratingData = {
             rating: rating,
             message: content,
             timestamp: new Date().toISOString()
-        }), "rating", sessionId);
+        };
+
+        // セッションデータに追加
+        state.sessionData.ratings.push(ratingData);
+
+        await saveMessage(JSON.stringify(ratingData), "rating", sessionId);
         
         const container = activeBtn.closest('.rating-container');
         const minimizedRating = createMinimizedRating(rating);
@@ -313,10 +332,35 @@ async function handleRating(rating, content, activeBtn, inactiveBtn) {
     }
 }
 
+// アンケートのリセット処理
+function resetSurveySelections() {
+    // チャット関連の評価をリセット（毎回リセットする項目）
+    const resetTargets = [
+        'satisfaction',
+        'personalization',
+        'comparison',
+        'intention',
+        'visitCount'
+    ];
+
+    resetTargets.forEach(name => {
+        const radioButtons = document.querySelectorAll(`input[name="${name}"]`);
+        radioButtons.forEach(radio => {
+            radio.checked = false;
+        });
+        state.surveyAnswers[name] = 0;
+    });
+
+    if (feedbackTextarea) {
+        feedbackTextarea.value = '';
+        state.surveyAnswers.feedback = '';
+    }
+}
+
 // アンケート関連の関数
 function setupRatingButtons() {
     const buttonGroups = [
-        { buttons: visitCountButtons, name: 'visitCount' },  // 追加
+        { buttons: visitCountButtons, name: 'visitCount' },
         { buttons: satisfactionButtons, name: 'satisfaction' },
         { buttons: personalizedButtons, name: 'personalization' },
         { buttons: comparisonButtons, name: 'comparison' },
@@ -346,7 +390,7 @@ async function submitSurvey(event) {
     event.preventDefault();
 
     const unansweredCategories = [];
-    if (!state.surveyAnswers.visitCount) unansweredCategories.push('利用回数'); 
+    if (!state.surveyAnswers.visitCount) unansweredCategories.push('利用回数');
     if (state.surveyAnswers.satisfaction === 0) unansweredCategories.push('満足度');
     if (state.surveyAnswers.personalization === 0) unansweredCategories.push('個別化された回答');
     if (state.surveyAnswers.comparison === 0) unansweredCategories.push('比較');
@@ -366,14 +410,32 @@ async function submitSurvey(event) {
         submitSurveyButton.textContent = '送信中...';
 
         const sessionId = getOrCreateSessionId();
+
+        // セッション全体のサマリーデータを作成
+        const summaryData = {
+            sessionId: sessionId,
+            conversationSummary: summaryManager.getCurrentSummary(),
+            chatHistory: state.sessionData.messages,
+            ratings: state.sessionData.ratings,
+            surveyAnswers: state.surveyAnswers,
+            totalMessages: state.sessionData.messages.length,
+            totalRatings: state.sessionData.ratings.length,
+            startTime: state.sessionData.startTime,
+            endTime: new Date()
+        };
+
+        // 通常のアンケートデータ保存
         const surveyData = {
             timestamp: new Date().toISOString(),
             answers: { ...state.surveyAnswers },
             sessionId: sessionId,
             conversationSummary: summaryManager.getCurrentSummary()
         };
-
         await saveMessage(JSON.stringify(surveyData), "survey", sessionId);
+
+        // セッション全体のサマリーを保存
+        await saveSummaryData(sessionId, summaryData);
+
         alert("アンケートにご協力いただき、ありがとうございました。");
         resetSurveyUI();
 
@@ -386,59 +448,17 @@ async function submitSurvey(event) {
     }
 }
 
-
-// frontend-chat.js の既存の関数の近くに追加
-function resetSurveySelections() {
-    // チャット関連の評価をリセット（毎回リセットする項目）
-    const resetTargets = [
-        'satisfaction',
-        'personalization',
-        'comparison',
-        'intention',
-        'visitCount'
-    ];
-
-    resetTargets.forEach(name => {
-        // name属性が一致するラジオボタンをすべて取得して選択解除
-        const radioButtons = document.querySelectorAll(`input[name="${name}"]`);
-        radioButtons.forEach(radio => {
-            radio.checked = false;
-        });
-        // 状態もリセット
-        state.surveyAnswers[name] = 0;
-    });
-
-    // フリーテキストエリアもリセット
-    if (feedbackTextarea) {
-        feedbackTextarea.value = '';
-        state.surveyAnswers.feedback = '';
-    }
-}
-
-
-
 // UI関連の関数
 function resetSurveyUI() {
     surveyForm.style.display = 'none';
     chatContainer.innerHTML = '';
     questionInput.disabled = false;
     sendButton.disabled = false;
-    
-    // この部分を削除
-    // document.querySelectorAll('.selected').forEach(button => {
-    //     button.classList.remove('selected');
-    //     button.style.backgroundColor = '';
-    // });
 
-    // 新しい関数を呼び出し
+    // チャット評価関連のみリセット
     resetSurveySelections();
 
-    // この部分も削除（新しい関数で処理するため）
-    // if (feedbackTextarea) {
-    //     feedbackTextarea.value = '';
-    // }
-
-    // state.surveyAnswers の初期化を修正（個人情報は保持）
+    // 個人情報を保持したまま状態を更新
     const preservedInfo = {
         age: state.surveyAnswers.age,
         gender: state.surveyAnswers.gender,
@@ -447,13 +467,13 @@ function resetSurveyUI() {
     };
 
     state.surveyAnswers = {
+        visitCount: '',
         satisfaction: 0,
         personalization: 0,
         comparison: 0,
         intention: 0,
-        visitCount: '',
         feedback: '',
-        ...preservedInfo  // 保持しておいた個人情報を復元
+        ...preservedInfo
     };
 
     getOrCreateSessionId(true);
@@ -478,42 +498,6 @@ function endChat() {
     sendButton.disabled = true;
     surveyForm.style.display = 'block';
     surveyForm.scrollIntoView({ behavior: 'smooth' });
-}
-
-// チャット履歴関連の関数
-async function loadChatHistory() {
-    const sessionId = getOrCreateSessionId();
-    try {
-        console.log("チャット履歴を読み込み中...");
-        
-        // 保存された会話まとめを読み込む
-        const savedSummary = summaryManager.getCurrentSummary();
-        if (savedSummary) {
-            state.currentSummary = savedSummary;
-            console.log('保存された会話まとめを読み込みました:', savedSummary);
-        }
-
-        // チャット履歴を読み込む
-        const history = await getChatHistory(sessionId);
-        if (history && history.length > 0) {
-            history.forEach(message => {
-                if (message.type !== 'rating' && message.type !== 'survey') {
-                    addMessage(message.content, message.type);
-                }
-            });
-        }
-    } catch (error) {
-        console.error("チャット履歴の読み込みエラー:", error);
-    }
-}
-
-// デバッグ用関数
-function debugState() {
-    console.log('現在の状態:', {
-        summary: summaryManager.getCurrentSummary(),
-        sessionId: sessionStorage.getItem(STORAGE_KEYS.SESSION),
-        state: state
-    });
 }
 
 // イベントリスナーの設定を改善
@@ -557,22 +541,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     console.log("イベントリスナーの設定完了");
 });
+
 // ページロード時の処理
 window.addEventListener('load', () => {
     console.log("ページロード処理開始");
     
     if (!document.hidden) {
         getOrCreateSessionId(true);
-        resetSurveySelections();  // この行を追加
-    }
-    loadChatHistory();
-});
-
-// ストレージ変更の監視
-window.addEventListener('storage', (event) => {
-    if (event.key === STORAGE_KEYS.SESSION || event.key === STORAGE_KEYS.SUMMARY) {
-        console.log("ストレージの変更を検出:", event.key);
-        loadChatHistory();
+        resetSurveySelections();
     }
 });
 
