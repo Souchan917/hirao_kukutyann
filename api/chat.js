@@ -498,7 +498,7 @@ export default async function handler(req, res) {
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'system', content: classificationPrompt }],
                 temperature: 0.3,
-                max_tokens: 200
+                max_tokens: 150
             })
         });
 
@@ -593,7 +593,7 @@ async function getGPTResponse(prompt, apiKey, stage = 'Unknown') {
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.7,
-                max_tokens: 250
+                max_tokens: 200
             })
         });
 
