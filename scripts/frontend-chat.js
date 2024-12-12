@@ -418,25 +418,58 @@ async function submitSurvey(event) {
 
         const sessionId = getOrCreateSessionId();
 
+        // 各メッセージの分類結果を含むチャット履歴を作成
+        const enhancedChatHistory = state.sessionData.messages.map(msg => {
+            // AIメッセージの場合は分類結果を含める
+            if (msg.type === "ai") {
+                try {
+                    // 文字列として保存されているAIメッセージの内容をパース
+                    const messageContent = JSON.parse(msg.content);
+                    return {
+                        content: messageContent.message,
+                        type: msg.type,
+                        timestamp: msg.timestamp,
+                        messageType: messageContent.messageType || 'unknown' // 分類結果
+                    };
+                } catch (e) {
+                    // パースに失敗した場合は元のメッセージをそのまま使用
+                    return msg;
+                }
+            }
+            return msg;
+        });
+
         // セッション全体のサマリーデータを作成
         const summaryData = {
             sessionId: sessionId,
             conversationSummary: summaryManager.getCurrentSummary(),
-            chatHistory: state.sessionData.messages,
+            chatHistory: enhancedChatHistory, // 分類結果を含む強化されたチャット履歴
             ratings: state.sessionData.ratings,
             surveyAnswers: state.surveyAnswers,
-            totalMessages: state.sessionData.messages.length,
-            totalRatings: state.sessionData.ratings.length,
-            startTime: state.sessionData.startTime,
-            endTime: new Date()
+            statistics: {
+                totalMessages: state.sessionData.messages.length,
+                totalRatings: state.sessionData.ratings.length,
+                messageTypeBreakdown: enhancedChatHistory.reduce((acc, msg) => {
+                    if (msg.messageType) {
+                        acc[msg.messageType] = (acc[msg.messageType] || 0) + 1;
+                    }
+                    return acc;
+                }, {}),
+                userMessages: enhancedChatHistory.filter(msg => msg.type === "user").length,
+                aiMessages: enhancedChatHistory.filter(msg => msg.type === "ai").length
+            },
+            timing: {
+                startTime: state.sessionData.startTime,
+                endTime: new Date(),
+                sessionDuration: Math.round((new Date() - state.sessionData.startTime) / 1000) // 秒単位
+            }
         };
 
         // 通常のアンケートデータ保存
         const surveyData = {
             timestamp: new Date().toISOString(),
             answers: { ...state.surveyAnswers },
-            sessionId: sessionId,
-
+            sessionId: sessionId
         };
         await saveMessage(JSON.stringify(surveyData), "survey", sessionId);
 
