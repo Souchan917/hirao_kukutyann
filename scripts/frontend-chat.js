@@ -4,7 +4,7 @@ console.log("=== frontend-chat.js 読み込み開始 ===");
 
 // 定数の定義
 const CONSTANTS = {
-    TIMEOUT_MS: 8000,         // タイムアウト時間（8秒）
+    TIMEOUT_MS: 11000,         // タイムアウト時間（8秒）
     MAX_HISTORY_LENGTH: 10,   // 保持する履歴の最大数
     SESSION_STORAGE_KEY: 'kukuchan_session_id',
     CHAT_HISTORY_KEY: 'kukuchan_chat_history'
