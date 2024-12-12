@@ -511,7 +511,7 @@ async function submitSurvey(event) {
             
             // チャットの評価履歴
             ratings: state.sessionData.ratings,
-            
+            conversationSummary: summaryManager.getCurrentSummary(),
             // アンケートの回答
             surveyAnswers: {
                 ...state.surveyAnswers,
