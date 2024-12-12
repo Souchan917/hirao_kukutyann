@@ -330,7 +330,6 @@ async function handleComplaint(userMessageData, apiKey) {
 
     重要な点：
     - 80文字程度の短い返答を心がける
-    - 1-2文で共感を示す
     - 長い説明は避ける
     - 解決策の提案は絶対に避ける
     - 相手の気持ちをシンプルに受け止める
