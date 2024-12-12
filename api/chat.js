@@ -121,6 +121,7 @@ async function handleConsultation(userMessageData, apiKey) {
     const followUpContent = await getFollowUpQuestion(followUpPrompt, apiKey);
 
     // 最終的な回答生成
+    // 最終的な回答生成
     const finalPrompt = `${KUKU_PROFILE}
 
     ### 会話のまとめ ###
