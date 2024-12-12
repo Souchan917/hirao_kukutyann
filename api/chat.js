@@ -136,7 +136,6 @@ async function handleConsultation(userMessageData, apiKey) {
     - 主訴は何か
     - どのような状況で困っているのか
     - どのような解決を望んでいるのか
-    - 相談の背景にある感情
     
     意図の分析: ~~~`;
 
@@ -642,8 +641,8 @@ async function getIntentAnalysis(prompt, apiKey) {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                // model: 'gpt-4o-mini',
-                model: 'gpt-3.5-turbo-1106',  // gpt-4o-miniから変更
+                model: 'gpt-4o-mini',
+                // model: 'gpt-3.5-turbo-1106',  // gpt-4o-miniから変更
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.5,  // より正確な分析のため低めに
                 max_tokens: 200    // 詳細な分析のため増量
