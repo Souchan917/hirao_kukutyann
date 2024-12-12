@@ -488,7 +488,7 @@ async function submitSurvey(event) {
                             content: messageContent.message,
                             type: msg.type,
                             timestamp: msg.timestamp,
-                            messageType: messageContent.messageType // 分類結果（相談、情報、愚痴など）
+                            messageType: messageContent.messageType || "unknown",
                         };
                     } catch (e) {
                         return msg;
