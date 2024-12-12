@@ -594,6 +594,7 @@ export default async function handler(req, res) {
         
         let reply, intentContent;
         
+
         // 分類に基づいて処理を分岐
         switch (messageType) {
             case '相談': {
@@ -608,8 +609,32 @@ export default async function handler(req, res) {
                 intentContent = result.intentContent;
                 break;
             }
-            // 他のケースも同様に修正
+            case '愚痴': {
+                const result = await handleComplaint(messageData, apiKey);
+                reply = result.reply;
+                intentContent = result.intentContent;
+                break;
+            }
+            case '承認': {
+                const result = await handleApproval(messageData, apiKey);
+                reply = result.reply;
+                intentContent = result.intentContent;
+                break;
+            }
+            case '議論': {
+                const result = await handleDiscussion(messageData, apiKey);
+                reply = result.reply;
+                intentContent = result.intentContent;
+                break;
+            }
+            case '雑談': {
+                const result = await handleChatting(messageData, apiKey);
+                reply = result.reply;
+                intentContent = result.intentContent;
+                break;
+            }
             default: {
+                console.log(`未知のメッセージタイプ: ${messageType}, 雑談として処理します`);
                 const result = await handleChatting(messageData, apiKey);
                 reply = result.reply;
                 intentContent = result.intentContent;
