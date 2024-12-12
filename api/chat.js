@@ -238,9 +238,7 @@ async function handleConsultation(userMessageData, apiKey) {
     };
 }
 
-// 他のハンドラー関数も同様に修正
-// handleInformation, handleComplaint, handleApproval, handleDiscussion, handleChatting
-// それぞれcurrentSummaryを考慮した形に更新
+
 // 情報提供の処理
 async function handleInformation(userMessageData, apiKey) {
     console.log('\n=== 情報提供処理開始 ===');
