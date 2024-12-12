@@ -185,7 +185,7 @@ async function handleConsultation(userMessageData, apiKey) {
     
     意図の分析: ~~~`;
 
-    const intentContent = await getIntentAnalysis(intentPrompt, apiKey, '1. 意図分析ステップ');
+    const intentContent = await getIntentAnalysis(intentPrompt, apiKey);
 
     // 追加質問生成
     const followUpPrompt = `
@@ -203,7 +203,7 @@ async function handleConsultation(userMessageData, apiKey) {
     
     追加質問案: ~~~`;
 
-    const followUpContent = await getFollowUpQuestion(followUpPrompt, apiKey, '2. 追加質問生成ステップ');
+    const followUpContent = await getFollowUpQuestion(followUpPrompt, apiKey);
 
     // 最終的な回答生成
     const finalPrompt = `${KUKU_PROFILE}
@@ -233,7 +233,7 @@ async function handleConsultation(userMessageData, apiKey) {
     ユーザーへの返答: ~~~`;
 
     return { 
-        reply: await getFinalResponse(finalPrompt, apiKey, '3. 最終回答生成ステップ'),
+        reply: await getFinalResponse(finalPrompt, apiKey),
         intentContent 
     };
 }
@@ -262,7 +262,7 @@ async function handleInformation(userMessageData, apiKey) {
     
     意図の分析: ~~~`;
 
-    const intentContent = await getIntentAnalysis(intentPrompt, apiKey, '1. 意図分析ステップ');
+    const intentContent = await getIntentAnalysis(intentPrompt, apiKey);
 
     // 2. 情報提供の最終的な回答生成
     const finalPrompt = `${KUKU_PROFILE}
@@ -288,7 +288,7 @@ async function handleInformation(userMessageData, apiKey) {
     
     ユーザーへの返答: ~~~`;
 
-    const reply = await getFinalResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
+    const reply = await getFinalResponse(finalPrompt, apiKey);
     return { reply, intentContent };
 }
 
@@ -318,7 +318,7 @@ async function handleComplaint(userMessageData, apiKey) {
     
     意図の分析: ~~~`;
 
-    const intentContent = await getIntentAnalysis(intentPrompt, apiKey, '1. 意図分析ステップ');
+    const intentContent = await getIntentAnalysis(intentPrompt, apiKey);
 
     // 2. 共感的な返答の生成
     const finalPrompt = `${KUKU_PROFILE}
@@ -341,7 +341,7 @@ async function handleComplaint(userMessageData, apiKey) {
     
     ユーザーへの返答: ~~~`;
 
-    const reply = await getFinalResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
+    const reply = await getFinalResponse(finalPrompt, apiKey);
     return { reply, intentContent };
 }
 
@@ -371,7 +371,7 @@ async function handleApproval(userMessageData, apiKey) {
     
     意図の分析: ~~~`;
 
-    const intentContent = await getIntentAnalysis(intentPrompt, apiKey, '1. 意図分析ステップ');
+    const intentContent = await getIntentAnalysis(intentPrompt, apiKey);
 
     // 2. 承認メッセージの生成
     const finalPrompt = `${KUKU_PROFILE}
@@ -408,7 +408,7 @@ async function handleApproval(userMessageData, apiKey) {
     
     ユーザーへの返答: ~~~`;
 
-    const reply = await getFinalResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
+    const reply = await getFinalResponse(finalPrompt, apiKey);
     return { reply, intentContent };
 }
 
@@ -439,7 +439,7 @@ async function handleDiscussion(userMessageData, apiKey) {
     
     意図の分析: ~~~`;
 
-    const intentContent = await getIntentAnalysis(intentPrompt, apiKey, '1. 意図分析ステップ');
+    const intentContent = await getIntentAnalysis(intentPrompt, apiKey);
 
     // 2. 建設的な議論の展開
     const finalPrompt = `${KUKU_PROFILE}
@@ -474,7 +474,7 @@ async function handleDiscussion(userMessageData, apiKey) {
     
     ユーザーへの返答: ~~~`;
 
-    const reply = await getFinalResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
+    const reply = await getFinalResponse(finalPrompt, apiKey);
     return { reply, intentContent };
 }
 
@@ -503,7 +503,7 @@ async function handleChatting(userMessageData, apiKey) {
     
     意図の分析: ~~~`;
 
-    const intentContent = await getIntentAnalysis(intentPrompt, apiKey, '1. 意図分析ステップ');
+    const intentContent = await getIntentAnalysis(intentPrompt, apiKey);
 
     // 2. 自然な会話の生成
     const finalPrompt = `${KUKU_PROFILE}
@@ -531,7 +531,7 @@ async function handleChatting(userMessageData, apiKey) {
     
     ユーザーへの返答: ~~~`;
 
-    const reply = await getFinalResponse(finalPrompt, apiKey, '2. 最終回答生成ステップ');
+    const reply = await getFinalResponse(finalPrompt, apiKey);
     return { reply, intentContent };
 }
 
