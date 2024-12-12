@@ -63,7 +63,7 @@ const summaryManager = {
 
     clearSummary() {
         localStorage.removeItem(STORAGE_KEYS.SUMMARY);
-        localStorage.removeItem(CHAT_HISTORY_KEY);
+
         state.currentSummary = '';
         console.log('会話まとめをクリアしました');
     }
