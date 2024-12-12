@@ -498,6 +498,19 @@
                     <div class="card-body">
                         <h3 class="card-title text-center mb-4">最終アンケート</h3>
                         
+                        <!-- 既存のアンケート項目の前（例えば、満足度の前）に以下を追加 -->
+                        <div class="survey-item mb-4">
+                            <p class="mb-2">1. このサイトでのチャットは何回目ですか：</p>
+                            <div class="rating-buttons" role="group" aria-label="利用回数">
+                                <input type="radio" class="btn-check" name="visitCount" id="visitCount1" value="first">
+                                <label class="btn btn-outline-primary" for="visitCount1">初めて</label>
+                                
+                                <input type="radio" class="btn-check" name="visitCount" id="visitCount2" value="multiple">
+                                <label class="btn btn-outline-primary" for="visitCount2">2回以上</label>
+                            </div>
+                        </div>
+
+
                         <div class="survey-item mb-4">
                             <p class="mb-2">1. 今回の一連の会話に対しての満足度を教えてください：</p>
                             <div class="rating-buttons" role="group" aria-label="満足度">

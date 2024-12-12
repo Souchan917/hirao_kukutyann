@@ -22,6 +22,7 @@ const submitSurveyButton = document.getElementById("submitSurvey");
 const loadingState = document.getElementById("loading-state");
 
 // 評価ボタングループの取得
+const visitCountButtons = surveyForm.querySelectorAll('input[name="visitCount"]');
 const satisfactionButtons = surveyForm.querySelectorAll('input[name="satisfaction"]');
 const personalizedButtons = surveyForm.querySelectorAll('input[name="personalization"]');
 const comparisonButtons = surveyForm.querySelectorAll('input[name="comparison"]');
@@ -38,6 +39,7 @@ let state = {
     lastMessageEvaluated: true,
     currentSummary: '',
     surveyAnswers: {
+        visitCount: '',  // 追加
         satisfaction: 0,
         personalization: 0,
         comparison: 0,
@@ -314,6 +316,7 @@ async function handleRating(rating, content, activeBtn, inactiveBtn) {
 // アンケート関連の関数
 function setupRatingButtons() {
     const buttonGroups = [
+        { buttons: visitCountButtons, name: 'visitCount' },  // 追加
         { buttons: satisfactionButtons, name: 'satisfaction' },
         { buttons: personalizedButtons, name: 'personalization' },
         { buttons: comparisonButtons, name: 'comparison' },
@@ -343,6 +346,7 @@ async function submitSurvey(event) {
     event.preventDefault();
 
     const unansweredCategories = [];
+    if (!state.surveyAnswers.visitCount) unansweredCategories.push('利用回数'); 
     if (state.surveyAnswers.satisfaction === 0) unansweredCategories.push('満足度');
     if (state.surveyAnswers.personalization === 0) unansweredCategories.push('個別化された回答');
     if (state.surveyAnswers.comparison === 0) unansweredCategories.push('比較');
@@ -399,6 +403,7 @@ function resetSurveyUI() {
     }
 
     state.surveyAnswers = {
+        visitCount: '',  
         satisfaction: 0,
         personalization: 0,
         comparison: 0,
