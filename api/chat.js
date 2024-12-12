@@ -116,51 +116,6 @@ const CLASSIFICATION_PROMPT = `あなたは子育て専門のカウンセラー�
 以上の情報を総合的に判断し、最も適切な分類を1つ選択してください。
 分類結果（上記6種類のいずれかの単語のみを返してください）: ~~~`;
 
-// 会話まとめを生成する関数
-async function generateConversationSummary(userMessageData, messageType, intentContent, aiResponse, apiKey) {
-    console.log('\n=== 会話まとめ生成開始 ===');
-    
-    try {
-        // 現在の会話まとめを取得
-        let currentSummary = userMessageData.currentSummary || '会話開始';
-        
-        // まとめ生成用のプロンプトを準備
-        const summaryPrompt = SUMMARY_PROMPT
-            .replace('{userMessage}', userMessageData.message)
-            .replace('{messageType}', messageType)
-            .replace('{intentContent}', intentContent)
-            .replace('{aiResponse}', aiResponse)
-            .replace('{currentSummary}', currentSummary);
-
-        const summaryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [{ role: 'user', content: summaryPrompt }],
-                temperature: 0.7,
-                max_tokens: 200
-            })
-        });
-
-        if (!summaryResponse.ok) {
-            throw new Error(`会話まとめ生成APIエラー: ${summaryResponse.statusText}`);
-        }
-
-        const summaryData = await summaryResponse.json();
-        const newSummary = summaryData.choices[0].message.content.trim();
-        
-        console.log('\n新しい会話まとめ:', newSummary);
-        return newSummary;
-
-    } catch (error) {
-        console.error('会話まとめ生成エラー:', error);
-        return userMessageData.currentSummary || '会話まとめの生成に失敗しました';
-    }
-}
 
 // 相談処理用の関数
 async function handleConsultation(userMessageData, apiKey) {
