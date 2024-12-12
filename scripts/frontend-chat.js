@@ -208,18 +208,29 @@ function setupRatingButtonEvents(goodBtn, badBtn) {
 }
 
 // メッセージ追加関数
-function addMessage(content, type) {
+function addMessage(content, type, messageType = null) {  // messageType パラメータを追加
     const messageDiv = document.createElement("div");
     messageDiv.className = type === "user" ? "user-message" : "ai-message";
-    messageDiv.textContent = content;
+    messageDiv.textContent = type === "ai" ? JSON.parse(content).message : content;  // AI の場合は message を取り出す
     chatContainer.appendChild(messageDiv);
 
     // セッションデータに追加（分類結果も含める）
-    state.sessionData.messages.push({
+    const messageData = {
         content: content,
         type: type,
         timestamp: new Date()
-    });
+    };
+
+    if (type === "ai") {
+        try {
+            const parsedContent = JSON.parse(content);
+            messageData.messageType = parsedContent.messageType;  // 分類結果を保存
+        } catch (e) {
+            console.log("メッセージのパースに失敗:", e);
+        }
+    }
+
+    state.sessionData.messages.push(messageData);
 
     if (type === "ai") {
         state.lastMessageEvaluated = false;
@@ -297,8 +308,9 @@ async function sendMessage() {
             timestamp: new Date().toISOString()
         };
 
-        addMessage(data.reply, "ai");
-        await saveMessage(JSON.stringify(aiMessageContent), "ai", sessionId);
+        const aiMessageString = JSON.stringify(aiMessageContent);
+        addMessage(aiMessageString, "ai");  // 文字列化したメッセージを渡す
+        await saveMessage(aiMessageString, "ai", sessionId);
 
     } catch (error) {
         console.error("チャットフロー内でエラー:", error);
