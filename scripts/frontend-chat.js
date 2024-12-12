@@ -387,9 +387,11 @@ function setupRatingButtons() {
     }
 }
 
+// submitSurvey 関数を更新
 async function submitSurvey(event) {
     event.preventDefault();
 
+    // 未回答チェック（既存のコード）
     const unansweredCategories = [];
     if (!state.surveyAnswers.visitCount) unansweredCategories.push('利用回数');
     if (state.surveyAnswers.satisfaction === 0) unansweredCategories.push('満足度');
@@ -412,20 +414,7 @@ async function submitSurvey(event) {
 
         const sessionId = getOrCreateSessionId();
 
-        // セッション全体のサマリーデータを作成
-        const summaryData = {
-            sessionId: sessionId,
-            conversationSummary: summaryManager.getCurrentSummary(),
-            chatHistory: state.sessionData.messages,
-            ratings: state.sessionData.ratings,
-            surveyAnswers: state.surveyAnswers,
-            totalMessages: state.sessionData.messages.length,
-            totalRatings: state.sessionData.ratings.length,
-            startTime: state.sessionData.startTime,
-            endTime: new Date()
-        };
-
-        // 通常のアンケートデータ保存
+        // 従来のアンケートデータ保存（既存の処理を維持）
         const surveyData = {
             timestamp: new Date().toISOString(),
             answers: { ...state.surveyAnswers },
@@ -434,8 +423,53 @@ async function submitSurvey(event) {
         };
         await saveMessage(JSON.stringify(surveyData), "survey", sessionId);
 
-        // セッション全体のサマリーを保存
-        await saveSummaryData(sessionId, summaryData);
+        // 包括的なセッションデータの作成
+        const comprehensiveSessionData = {
+            // セッション基本情報
+            sessionId: sessionId,
+            sessionStartTime: state.sessionData.startTime.toISOString(),
+            sessionEndTime: new Date().toISOString(),
+            
+            // チャット履歴
+            chatHistory: state.sessionData.messages.map(msg => ({
+                content: msg.content,
+                type: msg.type,
+                timestamp: msg.timestamp.toISOString()
+            })),
+            
+            // 評価履歴
+            ratings: state.sessionData.ratings.map(rating => ({
+                ...rating,
+                timestamp: rating.timestamp // すでにISOString形式の場合は変換不要
+            })),
+            
+            // アンケート回答
+            surveyAnswers: {
+                ...state.surveyAnswers,
+                submissionTime: new Date().toISOString()
+            },
+            
+            // 会話サマリー
+            conversationSummary: summaryManager.getCurrentSummary(),
+            
+            // 統計情報
+            stats: {
+                totalMessages: state.sessionData.messages.length,
+                messagesByType: {
+                    user: state.sessionData.messages.filter(m => m.type === "user").length,
+                    ai: state.sessionData.messages.filter(m => m.type === "ai").length
+                },
+                totalRatings: state.sessionData.ratings.length,
+                goodRatings: state.sessionData.ratings.filter(r => r.rating === "good").length,
+                badRatings: state.sessionData.ratings.filter(r => r.rating === "bad").length,
+                sessionDuration: Math.round(
+                    (new Date() - state.sessionData.startTime) / 1000 / 60 // 分単位
+                )
+            }
+        };
+
+        // 包括的なデータを保存
+        await saveSummaryData(sessionId, comprehensiveSessionData);
 
         alert("アンケートにご協力いただき、ありがとうございました。");
         resetSurveyUI();
