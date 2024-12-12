@@ -66,7 +66,7 @@ const summaryManager = {
     saveSummary(summary) {
         localStorage.setItem(STORAGE_KEYS.SUMMARY, summary);
         state.currentSummary = summary;
-        console.log('新しい会話まとめを保存:', summary);
+        // console.log('新しい会話まとめを保存:', summary);
     },
 
     clearSummary() {
