@@ -317,6 +317,7 @@ async function sendMessage() {
 
     } catch (error) {
         console.error("チャットフロー内でエラー:", error);
+        console.log("エラー発生時にaddMessageを呼び出します。");
         addMessage("エラーが発生しました。もう一度お試しください。", "ai");
     } finally {
         state.isSubmitting = false;
