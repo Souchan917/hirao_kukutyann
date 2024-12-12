@@ -241,7 +241,7 @@ function addMessage(content, type) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// メッセージ送信関数
+// メッセージ送信関数を修正
 async function sendMessage() {
     if (state.isSubmitting || !state.lastMessageEvaluated) {
         if (!state.lastMessageEvaluated) {
@@ -286,13 +286,19 @@ async function sendMessage() {
 
         const data = await response.json();
         
-        
         if (data.summary) {
             summaryManager.saveSummary(data.summary);
         }
 
+        // AIの返答を保存する時に分類結果も含める
+        const aiMessageContent = {
+            message: data.reply,
+            messageType: data.type, // 分類結果を追加
+            timestamp: new Date().toISOString()
+        };
+
         addMessage(data.reply, "ai");
-        await saveMessage(data.reply, "ai", sessionId);
+        await saveMessage(JSON.stringify(aiMessageContent), "ai", sessionId);
 
     } catch (error) {
         console.error("チャットフロー内でエラー:", error);
