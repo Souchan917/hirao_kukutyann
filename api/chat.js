@@ -146,6 +146,7 @@ async function handleConsultation(userMessageData, apiKey) {
     const followUpPrompt = `
     あなたはカウンセリングの専門家です。この相談をより良く理解し適切なアドバイスをするために、
     最も重要な1個の質問を提案してください。
+    情報がいくつか集まっている場合は追加の質問は必要ありません
 
     ### 会話のまとめ ###
     ${currentSummary}
