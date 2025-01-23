@@ -335,9 +335,9 @@ async function sendMessage() {
     } catch (error) {
         console.error("チャットフロー内でエラー:", error);
        
-        alert("うまく処理できませんでした。もう一度「送信」を押してください。");
+        alert("エラーが発生しました。もう一度お試しください。");
 
-        addMessage("うまく処理できませんでした。もう一度「送信」を押してください。", "ai");
+        addMessage("エラーが発生しました。もう一度お試しください。", "ai");
     } finally {
         state.isSubmitting = false;
         questionInput.disabled = false;
