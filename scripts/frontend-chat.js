@@ -2,6 +2,12 @@
 
 import { saveMessage, saveSummaryData } from "../libs/firebase.js";
 
+
+import AutoChat from './autoChat.js';
+
+document.addEventListener('DOMContentLoaded', () => {
+    new AutoChat();
+});
 console.log("=== frontend-chat.js 読み込み開始 ===");
 
 // 定数定義
