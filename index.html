@@ -455,6 +455,8 @@
                 <div class="col-md-10">
                     <div class="card">
                         <div class="card-body">
+                            
+                            <div id="automated-chat-container"></div>   
                             <!-- チャットコンテナ -->
                             <div id="chatContainer"></div>
                             
@@ -728,7 +730,9 @@
     <!-- Firebase -->
     <script type="module" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
-    
+      import AutomatedChat from '/components/AutomatedChat.js';
+  const container = document.getElementById('automated-chat-container');
+  ReactDOM.render(React.createElement(AutomatedChat), container);
     <!-- メインスクリプト -->
     <script type="module" src="/scripts/frontend-chat.js"></script>
 
@@ -736,6 +740,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- 同意画面の制御 -->
-
+    <script type="module">
+        import AutomatedChat from '/components/AutomatedChat.js';
+        const container = document.getElementById('automated-chat-container');
+        ReactDOM.render(React.createElement(AutomatedChat), container);
+    </script>
 </body>
 </html>
