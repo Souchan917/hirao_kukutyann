@@ -649,7 +649,7 @@ async function autoSendTestQuestions() {
             questionInput.dispatchEvent(event);
             
             // 送信ボタンのクリックをプログラム的にトリガー
-            sendButton.click();
+            await sendMessage();  // 直接 sendMessage 関数を呼び出し
             
             // 次の質問までの間隔
             await new Promise(resolve => setTimeout(resolve, 2000));
@@ -712,7 +712,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 自動送信ボタンのイベントリスナーを追加
     const autoSendButton = document.getElementById('autoSendButton');
     if (autoSendButton) {
-        autoSendButton.addEventListener('click', autoSendTestQuestions);
+        autoSendButton.addEventListener('click', () => {
+            if (confirm('テスト質問を自動送信しますか？')) {
+                autoSendTestQuestions();
+            }
+        });
         console.log("自動送信ボタンのリスナーを設定");
     }
     
