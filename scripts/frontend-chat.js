@@ -11,7 +11,7 @@ const STORAGE_KEYS = {
 };
 
 // DOM要素の取得
-const apiUrl = "/api/chat";
+const apiUrl = "https://your-backend-url.com/api/chat";
 const chatContainer = document.getElementById("chatContainer");
 const questionInput = document.getElementById("questionInput");
 const sendButton = document.getElementById("sendQuestion");

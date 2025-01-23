@@ -462,6 +462,15 @@ async function handleChatting(userMessageData, apiKey) {
 
 // メインのハンドラー関数を修正
 export default async function handler(req, res) {
+    // CORSヘッダーを追加
+    res.setHeader('Access-Control-Allow-Origin', 'https://souchan917.github.io');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Session-ID');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+    
     console.log('\n====== チャット処理開始 ======');
     const { userMessage, conversationSummary } = req.body;
     console.log('受信メッセージ:', userMessage);
