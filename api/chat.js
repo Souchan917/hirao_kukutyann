@@ -592,14 +592,20 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error('\n!!!! エラー発生 !!!!');
-        console.error('エラー詳細:', error);
-        console.log('====== チャット処理異常終了 ======\n');
-
-        res.status(500).json({
-            error: 'AIからの応答の取得に失敗しました',
-            details: error.message
-        });
+        console.error("チャットフロー内でエラー:", error);
+        
+        const errorMessage = {
+            message: "うまく処理できませんでした。もう一度「送信」を押してください。",
+            messageType: "error",
+            timestamp: new Date().toISOString()
+        };
+        
+        res.status(500).json(errorMessage);
+    } finally {
+        state.isSubmitting = false;
+        questionInput.disabled = false;
+        sendButton.disabled = false;
+        loadingState.style.display = "none";
     }
 }
 
