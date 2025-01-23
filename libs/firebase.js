@@ -14,13 +14,13 @@ import {
 
 // Firebase設定
 const firebaseConfig = {
-    apiKey: "AIzaSyARMz0K5u5HLUWBeS3s_Ma0ttBuZzyHU3k",
-    authDomain: "llmasajudgde.firebaseapp.com",
-    projectId: "llmasajudgde",
-    storageBucket: "llmasajudgde.firebasestorage.app",
-    messagingSenderId: "186361069930",
-    appId: "1:186361069930:web:12622be3eb4447f9826513",
-    measurementId: "G-QZY37K4N8T"
+    apiKey: "AIzaSyACZVcf8cWzcu698PdbKKRVcbStH82lavc",
+    authDomain: "kukutyan-f48ae.firebaseapp.com",
+    projectId: "kukutyan-f48ae",
+    storageBucket: "kukutyan-f48ae.firebasestorage.app",
+    messagingSenderId: "894594120998",
+    appId: "1:894594120998:web:9160722e1d27e98afbd5e7",
+    measurementId: "G-8FSDCGV2M7"
 };
 
 // Firebaseの初期化
