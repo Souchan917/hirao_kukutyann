@@ -621,9 +621,17 @@ const TEST_QUESTIONS = [
     "子どもがスマートフォンを欲しがっています。",
 ];
 
-// 自動送信の制御関数
+// 自動送信の制御関数を修正
 async function autoSendTestQuestions() {
     const autoSendButton = document.getElementById('autoSendButton');
+    const questionInput = document.getElementById('questionInput');
+    const sendButton = document.getElementById('sendQuestion');
+    
+    if (!questionInput || !sendButton) {
+        console.error('必要な要素が見つかりません');
+        return;
+    }
+
     autoSendButton.disabled = true;
     autoSendButton.textContent = '送信中...';
 
@@ -636,7 +644,12 @@ async function autoSendTestQuestions() {
             
             // 質問を入力して送信
             questionInput.value = question;
-            await sendMessage();
+            // カスタムイベントを作成して送信
+            const event = new Event('input', { bubbles: true });
+            questionInput.dispatchEvent(event);
+            
+            // 送信ボタンのクリックをプログラム的にトリガー
+            sendButton.click();
             
             // 次の質問までの間隔
             await new Promise(resolve => setTimeout(resolve, 2000));
