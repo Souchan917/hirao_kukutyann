@@ -289,7 +289,7 @@ async function sendMessage() {
 
         const currentSummary = summaryManager.getCurrentSummary();
         
-        const response = await fetch(apiUrl, {
+        const response = await fetch("https://souchan917.github.io/api/chat", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -625,9 +625,8 @@ const TEST_QUESTIONS = [
 async function autoSendTestQuestions() {
     const autoSendButton = document.getElementById('autoSendButton');
     const questionInput = document.getElementById('questionInput');
-    const sendButton = document.getElementById('sendQuestion');
     
-    if (!questionInput || !sendButton) {
+    if (!questionInput) {
         console.error('必要な要素が見つかりません');
         return;
     }
@@ -644,12 +643,16 @@ async function autoSendTestQuestions() {
             
             // 質問を入力して送信
             questionInput.value = question;
-            // カスタムイベントを作成して送信
-            const event = new Event('input', { bubbles: true });
-            questionInput.dispatchEvent(event);
             
-            // 送信ボタンのクリックをプログラム的にトリガー
-            await sendMessage();  // 直接 sendMessage 関数を呼び出し
+            // 自動で評価も行う
+            await sendMessage();
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Good評価を自動で行う
+            const goodButton = document.querySelector('.rating-button[data-rating="good"]');
+            if (goodButton) {
+                goodButton.click();
+            }
             
             // 次の質問までの間隔
             await new Promise(resolve => setTimeout(resolve, 2000));
