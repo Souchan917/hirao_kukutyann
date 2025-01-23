@@ -442,7 +442,10 @@
       
       <div id="main-content">
         <div class="container-lg">
-
+            <!-- <nav class="navbar">
+                <span class="navbar-brand">ククちゃん - 子育て支援AIチャットボット研究</span>
+            </nav>
+     -->
             <div class="text-center mb-4">
                 <h1 class="mb-3 responsive-title">ククちゃん</h1>
                 <p class="responsive-text">
@@ -460,17 +463,8 @@
                             
                             <!-- 入力エリア -->
                             <div class="input-container">
-                                <textarea 
-                                    id="questionInput" 
-                                    class="form-control" 
-                                    rows="1"
-                                    placeholder="メッセージを入力してください"
-                                ></textarea>
-                                <button 
-                                    id="sendQuestion" 
-                                    class="btn btn-primary"
-                                    type="button"  <!-- type="button"を明示的に指定 -->
-                                >送信</button>
+                                <textarea id="questionInput" class="form-control" rows="1"></textarea>
+                                <button id="sendQuestion" class="btn btn-primary">送信</button>
                             </div>
                         </div>
                     </div>
@@ -526,7 +520,7 @@
 
 
                         <div class="survey-item mb-4">
-                            <p class="mb-2">2. 今回の一連の会話に対しての満足度を教えてください：</p>
+                            <p class="mb-2">1. 今回の一連の会話に対しての満足度を教えてください：</p>
                             <div class="rating-buttons" role="group" aria-label="満足度">
                                 <input type="radio" class="btn-check" name="satisfaction" id="satisfaction1" value="1">
                                 <label class="btn btn-outline-primary" for="satisfaction1">1<br>不満</label>
@@ -546,7 +540,7 @@
                         </div>
 
                         <div class="survey-item mb-4">
-                            <p class="mb-2">3. あなたが求める回答ができていましたか：</p>
+                            <p class="mb-2">2. あなたが求める回答ができていましたか：</p>
                             <div class="rating-buttons" role="group" aria-label="個別化された回答">
                                 <input type="radio" class="btn-check" name="personalization" id="personalization1" value="1">
                                 <label class="btn btn-outline-primary" for="personalization1">1<br>できていない</label>
@@ -566,7 +560,7 @@
                         </div>
 
                         <div class="survey-item mb-4">
-                            <p class="mb-2">4. 従来のくくちゃんに比べて、新しいくくちゃんはどうでしたか：</p>
+                            <p class="mb-2">3. 従来のくくちゃんに比べて、新しいくくちゃんはどうでしたか：</p>
                             <div class="rating-buttons" role="group" aria-label="比較">
                                 <input type="radio" class="btn-check" name="comparison" id="comparison0" value="0">
                                 <label class="btn btn-outline-primary" for="comparison0">0<br>従来のくくちゃんを<br>使ったことがない</label>
@@ -589,7 +583,7 @@
                         </div>
 
                         <div class="survey-item mb-4">
-                            <p class="mb-2">5. あなたの質問の意図をくみ取って返答していましたか：</p>
+                            <p class="mb-2">4. あなたの質問の意図をくみ取って返答していましたか：</p>
                             <div class="rating-buttons" role="group" aria-label="意図の理解">
                                 <input type="radio" class="btn-check" name="intention" id="intention1" value="1">
                                 <label class="btn btn-outline-primary" for="intention1">1<br>できていない</label>
@@ -611,7 +605,7 @@
                         
                         <!-- 新しい項目を追加 -->
                         <div class="survey-item mb-4">
-                            <p class="mb-2">6. あなたの年代を教えてください：</p>
+                            <p class="mb-2">5. あなたの年代を教えてください：</p>
                             <div class="rating-buttons" role="group" aria-label="年代">
                                 <input type="radio" class="btn-check" name="age" id="age1" value="20">
                                 <label class="btn btn-outline-primary" for="age1">20代</label>
@@ -631,7 +625,7 @@
                         </div>
             
                         <div class="survey-item mb-4">
-                            <p class="mb-2">7. あなたの性別を教えてください：</p>
+                            <p class="mb-2">6. あなたの性別を教えてください：</p>
                             <div class="rating-buttons" role="group" aria-label="性別">
                                 <input type="radio" class="btn-check" name="gender" id="gender1" value="female">
                                 <label class="btn btn-outline-primary" for="gender1">女性</label>
@@ -645,7 +639,7 @@
                         </div>
             
                         <div class="survey-item mb-4">
-                            <p class="mb-2">8. あなたのお子さんと関わる経験・ご職業を教えてください(複数の場合は最も長く経験しているもの)：</p>
+                            <p class="mb-2">7. あなたのお子さんと関わる経験・ご職業を教えてください(複数の場合は最も長く経験しているもの)：</p>
                             <div class="rating-buttons" role="group" aria-label="職業">
                                 <input type="radio" class="btn-check" name="occupation" id="occ1" value="nursery">
                                 <label class="btn btn-outline-primary" for="occ1">保育士</label>
@@ -683,7 +677,7 @@
                          </div>
             
                         <div class="survey-item mb-4">
-                            <p class="mb-2">9. 前述で回答いただいた経験・ご職業の継続年数を教えてください：</p>
+                            <p class="mb-2">8. 前述で回答いただいた経験・ご職業の継続年数を教えてください：</p>
                             <div class="rating-buttons" role="group" aria-label="経験年数">
                                 <input type="radio" class="btn-check" name="experience" id="exp1" value="less1">
                                 <label class="btn btn-outline-primary" for="exp1">1年未満</label>
@@ -715,7 +709,7 @@
                         </div>
             
                         <div class="survey-item mb-4">
-                            <p class="mb-2">10. ご意見・ご感想がありましたら自由にお書きください：</p>
+                            <p class="mb-2">9. ご意見・ご感想がありましたら自由にお書きください：</p>
                             <textarea id="feedback" class="form-control" rows="4"></textarea>
                         </div>
             
@@ -738,11 +732,11 @@
     <script type="module" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
     
+    <!-- メインスクリプト -->
+    <script type="module" src="/scripts/frontend-chat.js"></script>
+
     <!-- Bootstrap -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- メインスクリプト（パスを修正） -->
-    <script type="module" src="./scripts/frontend-chat.js"></script>
 
     <!-- 同意画面の制御 -->
 

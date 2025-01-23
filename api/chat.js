@@ -15,7 +15,7 @@ const KUKU_PROFILE = `あなたは子育ての相談にのる先輩、"ククち
 - あなたには長男(ポポちゃん・6歳)と長女(ピピちゃん・2歳)がいます。`;
 
 // 会話まとめ生成用のプロンプト
-const SUMMARY_PROMPT = `あなたは会話分析の専門家です。以下の新しい会話内容を踏まえて、まとめを更新してください。
+const SUMMARY_PROMPT = `あなたは会話分析の専門家です。以下の新しい会話内容を踏まえて、これまでの会話の簡潔なまとめを生成してください。
 
 ### 新しい会話の内容 ###
 ユーザーの質問: {userMessage}
@@ -26,55 +26,94 @@ const SUMMARY_PROMPT = `あなたは会話分析の専門家です。以下の�
 ### 現在の会話まとめ ###
 {currentSummary}
 
-まとめ方の注意点：
-1. まとめの冒頭に必ず「チャット回数：X回目」と記載
-   - 現在の会話まとめが空の場合は「チャット回数：1回目」
-   - それ以外の場合は前回の回数に1を足す
-2. 200文字以内で以下を含める：
-   - ユーザーの主な関心事/問題点
-   - ククちゃんの対応要点
-   - 時系列での会話の流れ
-
-形式：
-チャット回数：X回目
-[会話の要約を記載]
+以下の点に注意してまとめを更新してください：
+1. 重要なポイントのみを残し、200文字以内で簡潔にまとめる
+2. 時系列順に整理する
+3. ユーザーの主な関心事や問題点を明確にする
+4. ククちゃんのアドバイスや対応の要点を含める
+5. 会話の流れが分かるように構成する
+6. 何回目のチャットであるか記録する(現在の会話まとめが空白の時は1回目です)
 
 新しい会話まとめ: ~~~`;
 
 // 分類用のプロンプト
-const CLASSIFICATION_PROMPT = `あなたは子育て専門のカウンセラーとして、ユーザーの発言を「相談」「情報」「愚痴」「承認」「議論」「雑談」のいずれかに分類してください。
+const CLASSIFICATION_PROMPT = `あなたは子育て専門のカウンセラーとして、ユーザーの発言を正確に分類してください。
+前後の文脈を十分に考慮しながら、以下のユーザーの質問を「相談」「情報」「愚痴」「承認」「議論」「雑談」のいずれかに分類します。
 
-### 分類基準 ###
+### 詳細な分類基準 ###
 
-1. 相談：具体的な問題への解決策を求める
-   例）「夜泣きが続いて困っています」「食事の際に野菜を食べてくれません」
+1. 相談（具体的な問題への解決策を求める）
+   - 明確な問題や課題が提示されている
+   - "どうしたら良いですか"などの解決策を求める表現
+   - 例）
+     - 「2歳児の夜泣きが続いて困っています」
+     - 「食事の際に野菜を全く食べてくれません」
+     - 「イヤイヤ期への対処法を教えてください」
 
-2. 情報：客観的な知識や事実を求める
-   例）「3歳児の適切な睡眠時間は？」「予防接種の時期について」
+2. 情報（客観的な知識や事実を求める）
+   - 具体的な情報やデータを求める
+   - Yes/Noで答えられる質問
+   - 例）
+     - 「3歳児の適切な睡眠時間は？」
+     - 「予防接種の時期について」
+     - 「保育園の入園に必要な書類は？」
 
-3. 愚痴：感情の発散、共感を求める
-   例）「育児が本当に疲れます」「仕事と育児の両立が辛い」
+3. 愚痴（感情の発散、共感を求める）
+   - ネガティブな感情表現が含まれる
+   - 解決策よりも気持ちの共有を求める
+   - 例）
+     - 「育児が本当に疲れます...」
+     - 「義母の干渉がストレスで...」
+     - 「仕事と育児の両立が辛い」
 
-4. 承認：自身の判断や行動の支持を求める
-   例）「この対応で良かったでしょうか」「このままで大丈夫でしょうか」
+4. 承認（自身の判断や行動の支持を求める）
+   - 自分の決定や考えに対する不安
+   - 確認や保証を求める表現
+   - 例）
+     - 「この対応で良かったでしょうか」
+     - 「このままで大丈夫でしょうか」
+     - 「私の考えは間違っていますか」
 
-5. 議論：意見交換や多角的な検討を求める
-   例）「早期教育についてどう思いますか」「習い事はいつから始めるべき？」
+5. 議論（意見交換や多角的な検討を求める）
+   - 複数の視点や考え方の提示を求める
+   - 賛否両論ありうるテーマ
+   - 例）
+     - 「早期教育についてどう思いますか」
+     - 「習い事はいつから始めるべき？」
+     - 「スマホの使用制限について」
 
-6. 雑談：気軽な会話、日常的な出来事の共有
-   例）「子どもの成長が嬉しいです」「今日は公園に行きました」
+6. 雑談（気軽な会話、交流）
+   - 明確な課題や質問がない
+   - 日常的な出来事の共有
+   - 例）
+     - 「子どもの最近の成長が嬉しいです」
+     - 「今日は公園に行ってきました」
+     - 「子育ての楽しい思い出」
 
-判断のポイント：
-- 会話の流れを考慮
-- 言葉の背後にある感情や意図を理解
-- 質問の具体性を確認
+### 判断のためのチェックポイント ###
+1. 文脈の確認
+   - 直前の会話の流れを重視
+   - 会話の継続性を考慮
+   - 話題の展開方向を把握
 
+2. 感情と意図の分析
+   - 言葉の背後にある感情
+   - 真の相談目的
+   - 期待している返答の種類
+
+3. 表現パターンの確認
+   - 使用されている語尾や助詞
+   - 感情を表す言葉の有無
+   - 質問の具体性レベル
+
+現在の状況：
 ### 会話のまとめ ###
 {conversationSummary}
 
 ### 現在の質問 ###
 {currentMessage}
 
+以上の情報を総合的に判断し、最も適切な分類を1つ選択してください。
 分類結果（上記6種類のいずれかの単語のみを返してください）: ~~~`;
 
 
@@ -121,31 +160,26 @@ async function handleConsultation(userMessageData, apiKey) {
     const followUpContent = await getFollowUpQuestion(followUpPrompt, apiKey);
 
     // 最終的な回答生成
-    // 最終的な回答生成
     const finalPrompt = `${KUKU_PROFILE}
-
+    
     ### 会話のまとめ ###
     ${currentSummary}
     
-    まず会話まとめから「チャット回数：X回目」の部分を確認し：
-    - 1回目の場合：状況理解が浅いと判断
-    - 2回目以降：状況理解ができていると判断
-    
-    1回目（状況理解が浅い）の場合：
-    - 1つの質問を含める
-    - 50~80文字で返答
-    - 相手のことをもっと知りたい姿勢で
-    
-    2回目以降（状況理解ができている）の場合：
-    - 具体的なアドバイスを含める
-    - 200文字以内で返答
-    - これまでの会話を踏まえた対応をしてください
-    
-    共通の注意点：
-    - 絵文字や「！」を適切に使用
-    - 相手に共感し、気持ちを代弁
-    - 親しみやすい口調で
-    - 不要な改行は避ける
+    以下の情報をもとに、ククちゃんとして、
+    具体的な解決策を含む返答を生成してください。
+
+       具体的な解決策を含む返答を生成してください。
+    - 状況の理解が浅い場合：
+        - 相手の状況をより理解するために、1つ質問を含めてください
+        - 共感を示しつつ、50~80文字程度の短い返答を心がけてください
+    - チャット回数が1回以上である。または、ユーザーの状況をある程度理解できている。
+        - 具体的なアドバイスを含む200文字程度の文章を作成してください
+    - いずれの場合も以下を守ってください：
+        - 文章に合わせて絵文字や「！」を付けてください
+        - 相手に共感するコメントをしたり、相手の気持ちを代弁してください
+        - 親しみやすい口調を維持してください
+        - 会話のまとめを参考に適切な返答をしてください
+        - 改行する場合には不要な空行は入れない
     
     ユーザーの相談: '${message}'
     意図の分析: '${intentContent}'
@@ -462,15 +496,6 @@ async function handleChatting(userMessageData, apiKey) {
 
 // メインのハンドラー関数を修正
 export default async function handler(req, res) {
-    // CORSヘッダーを追加
-    res.setHeader('Access-Control-Allow-Origin', 'https://souchan917.github.io');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Session-ID');
-
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    
     console.log('\n====== チャット処理開始 ======');
     const { userMessage, conversationSummary } = req.body;
     console.log('受信メッセージ:', userMessage);
@@ -592,20 +617,14 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error("チャットフロー内でエラー:", error);
-        
-        const errorMessage = {
-            message: "うまく処理できませんでした。もう一度「送信」を押してください。",
-            messageType: "error",
-            timestamp: new Date().toISOString()
-        };
-        
-        res.status(500).json(errorMessage);
-    } finally {
-        state.isSubmitting = false;
-        questionInput.disabled = false;
-        sendButton.disabled = false;
-        loadingState.style.display = "none";
+        console.error('\n!!!! エラー発生 !!!!');
+        console.error('エラー詳細:', error);
+        console.log('====== チャット処理異常終了 ======\n');
+
+        res.status(500).json({
+            error: 'AIからの応答の取得に失敗しました',
+            details: error.message
+        });
     }
 }
 
@@ -626,7 +645,7 @@ async function getIntentAnalysis(prompt, apiKey) {
                 model: 'gpt-4o-mini',
                 // model: 'gpt-3.5-turbo-1106',  // gpt-4o-miniから変更
                 messages: [{ role: 'user', content: prompt }],
-                temperature: 0.3,  // より正確な分析のため低めに
+                temperature: 0.5,  // より正確な分析のため低めに
                 max_tokens: 175    // 詳細な分析のため増量
             })
         });
@@ -665,11 +684,11 @@ async function getFollowUpQuestion(prompt, apiKey) {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                // model: 'gpt-3.5-turbo-1106',  // gpt-4o-miniから変更
+                // model: 'gpt-4o-mini',
+                model: 'gpt-3.5-turbo-1106',  // gpt-4o-miniから変更
                 messages: [{ role: 'user', content: prompt }],
-                temperature: 0.3,  // 適度な創造性のため
-                max_tokens: 50    // 質問は簡潔に
+                temperature: 0.5,  // 適度な創造性のため
+                max_tokens: 100    // 質問は簡潔に
             })
         });
 
@@ -709,7 +728,7 @@ async function getFinalResponse(prompt, apiKey) {
             body: JSON.stringify({
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: prompt }],
-                temperature: 0.6,  // 自然な応答のため
+                temperature: 0.7,  // 自然な応答のため
                 max_tokens: 300    // 十分な長さの回答のため増量
             })
         });
@@ -760,10 +779,10 @@ async function generateConversationSummary(userMessageData, messageType, intentC
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                // model: 'gpt-3.5-turbo-1106',  // gpt-4o-miniから変更
+                // model: 'gpt-4o-mini',
+                model: 'gpt-3.5-turbo-1106',  // gpt-4o-miniから変更
                 messages: [{ role: 'user', content: summaryPrompt }],
-                temperature: 0.2,  // 一貫性のため低めに
+                temperature: 0.3,  // 一貫性のため低めに
                 max_tokens: 150    // まとめ用に適度な長さ
             })
         });

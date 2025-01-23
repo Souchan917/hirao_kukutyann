@@ -2,4 +2,3 @@
 # Firebase
 .env.local
 .firebase/
-.vercel
