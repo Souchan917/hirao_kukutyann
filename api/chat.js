@@ -77,6 +77,29 @@ const CLASSIFICATION_PROMPT = `あなたは子育て専門のカウンセラー�
 
 分類結果（上記6種類のいずれかの単語のみを返してください）: ~~~`;
 
+// 質問リストを追加
+const TEST_QUESTIONS = [
+    "子どもが野菜を食べてくれません。どうしたらいいですか？",
+    "2歳の子どもが夜泣きをして困っています。",
+    "子どもの習い事はいつから始めるべきですか？",
+    "子どもの友達関係で悩んでいます。",
+    "子どもがスマートフォンを欲しがっています。",
+    // 必要に応じて質問を追加
+];
+
+// テスト用の自動送信機能を追加
+async function autoSendTestQuestions(apiKey) {
+    const questionInput = document.getElementById('questionInput');
+    const sendButton = document.getElementById('sendQuestion');
+    
+    for (const question of TEST_QUESTIONS) {
+        // 前の質問への回答が完了するまで待機
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        questionInput.value = question;
+        sendButton.click();
+    }
+}
 
 // 相談処理用の関数
 async function handleConsultation(userMessageData, apiKey) {
@@ -456,10 +479,6 @@ async function handleChatting(userMessageData, apiKey) {
     return { reply, intentContent };
 }
 
-
-
-
-
 // メインのハンドラー関数を修正
 export default async function handler(req, res) {
     console.log('\n====== チャット処理開始 ======');
@@ -777,5 +796,7 @@ export {
     getIntentAnalysis,
     getFollowUpQuestion,
     getFinalResponse,
-    generateConversationSummary
+    generateConversationSummary,
+    autoSendTestQuestions,  // 新しい関数をエクスポート
+    TEST_QUESTIONS         // 質問リストをエクスポート
 };

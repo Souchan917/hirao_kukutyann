@@ -2,12 +2,6 @@
 
 import { saveMessage, saveSummaryData } from "../libs/firebase.js";
 
-
-import AutoChat from './autoChat.js';
-
-document.addEventListener('DOMContentLoaded', () => {
-    new AutoChat();
-});
 console.log("=== frontend-chat.js 読み込み開始 ===");
 
 // 定数定義
@@ -213,9 +207,6 @@ function setupRatingButtonEvents(goodBtn, badBtn) {
     badBtn.onclick = async () => await handleRating('bad', content, badBtn, goodBtn);
 }
 
-
-
-
 // テキストエリアの自動調整
 document.addEventListener("DOMContentLoaded", () => {
     const textarea = document.getElementById("questionInput");
@@ -225,10 +216,6 @@ document.addEventListener("DOMContentLoaded", () => {
         this.style.height = this.scrollHeight + "px"; // 必要な高さに設定
     });
 });
-
-
-
-
 
 // メッセージ追加関数
 function addMessage(content, type, messageType = null) {  // messageType パラメータを追加
@@ -351,6 +338,7 @@ async function sendMessage() {
         loadingState.style.display = "none";
     }
 }
+
 // 評価処理関数
 async function handleRating(rating, content, activeBtn, inactiveBtn) {
     try {
@@ -624,6 +612,44 @@ function endChat() {
     surveyForm.scrollIntoView({ behavior: 'smooth' });
 }
 
+// テスト用の質問リストを定義
+const TEST_QUESTIONS = [
+    "子どもが野菜を食べてくれません。どうしたらいいですか？",
+    "2歳の子どもが夜泣きをして困っています。",
+    "子どもの習い事はいつから始めるべきですか？",
+    "子どもの友達関係で悩んでいます。",
+    "子どもがスマートフォンを欲しがっています。",
+];
+
+// 自動送信の制御関数
+async function autoSendTestQuestions() {
+    const autoSendButton = document.getElementById('autoSendButton');
+    autoSendButton.disabled = true;
+    autoSendButton.textContent = '送信中...';
+
+    try {
+        for (const question of TEST_QUESTIONS) {
+            // 前の質問への回答と評価が完了するまで待機
+            while (!state.lastMessageEvaluated) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            // 質問を入力して送信
+            questionInput.value = question;
+            await sendMessage();
+            
+            // 次の質問までの間隔
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+    } catch (error) {
+        console.error('自動送信エラー:', error);
+        alert('自動送信中にエラーが発生しました。');
+    } finally {
+        autoSendButton.disabled = false;
+        autoSendButton.textContent = 'テスト質問を自動送信';
+    }
+}
+
 // イベントリスナーの設定を改善
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOMContentLoaded イベント発火");
@@ -635,7 +661,6 @@ document.addEventListener('DOMContentLoaded', () => {
         this.style.height = "auto"; // 高さをリセット
         this.style.height = this.scrollHeight + "px"; // 必要な高さに設定
     });
-
 
     if (sendButton) {
         sendButton.addEventListener("click", sendMessage);
@@ -669,6 +694,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (submitSurveyButton) {
         submitSurveyButton.addEventListener("click", submitSurvey);
         console.log("アンケート送信ボタンのリスナーを設定");
+    }
+
+    // 自動送信ボタンのイベントリスナーを追加
+    const autoSendButton = document.getElementById('autoSendButton');
+    if (autoSendButton) {
+        autoSendButton.addEventListener('click', autoSendTestQuestions);
+        console.log("自動送信ボタンのリスナーを設定");
     }
     
     console.log("イベントリスナーの設定完了");
