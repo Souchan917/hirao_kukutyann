@@ -1,28 +1,67 @@
 // auto-chat.js
-import { saveMessage, saveSummaryData } from "../libs/firebase.js";
+import { saveMessage } from './libs/firebase.js';
 
-const questions = [
-    "夜泣きが続いて困っています",
-    "離乳食の進め方について教えてください",
-    "子どもの発熱時の対処法を教えてください",
-    "トイレトレーニングのコツは？",
-    "イヤイヤ期の対処法について"
-];
+class AutoChat {
+    constructor() {
+        this.running = false;
+        this.currentIndex = 0;
+        this.sessionId = '';
+        this.questions = [
+            "子どもの夜泣きが心配です。どうしたらいいですか？",
+            "離乳食はいつから始めればいいですか？",
+            "子どもの発達が遅いように感じます。様子を見ていていいですか？",
+            "上の子が下の子に意地悪をします。どう対応すればいいですか？",
+            "保育園に行きたがらないのですが、どうしたらいいでしょうか？"
+        ];
+        this.setupUI();
+    }
 
-async function processQuestion(question, maxRetries = 3) {
-    let attempts = 0;
-    while (attempts < maxRetries) {
+    setupUI() {
+        const container = document.createElement('div');
+        container.className = 'auto-chat-container p-4';
+        
+        const button = document.createElement('button');
+        button.textContent = '自動質問開始';
+        button.className = 'btn btn-primary';
+        button.onclick = () => this.startAutomation();
+        
+        const progress = document.createElement('div');
+        progress.className = 'mt-4';
+        progress.id = 'auto-chat-progress';
+        
+        container.appendChild(button);
+        container.appendChild(progress);
+        
+        document.getElementById('main-content').prepend(container);
+    }
+
+    async startAutomation() {
+        if (this.running) return;
+        
+        this.running = true;
+        this.sessionId = `auto-session-${Date.now()}`;
+        this.currentIndex = 0;
+        await this.sendNextQuestion();
+    }
+
+    async sendNextQuestion() {
+        if (this.currentIndex >= this.questions.length) {
+            this.running = false;
+            return;
+        }
+
         try {
-            const sessionId = `auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            console.log(`処理中: "${question}"`);
-            
-            await saveMessage(question, "user", sessionId);
+            const question = this.questions[this.currentIndex];
+            document.getElementById('auto-chat-progress').textContent = 
+                `進捗: ${this.currentIndex + 1}/${this.questions.length}`;
 
-            const response = await fetch("http://localhost:3000/api/chat", {
+            await saveMessage(question, "user", this.sessionId);
+
+            const response = await fetch("/api/chat", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-Session-ID": sessionId
+                    "X-Session-ID": this.sessionId
                 },
                 body: JSON.stringify({
                     userMessage: question,
@@ -30,73 +69,25 @@ async function processQuestion(question, maxRetries = 3) {
                 })
             });
 
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
             const data = await response.json();
             
-            const aiMessageContent = {
+            await saveMessage(JSON.stringify({
                 message: data.reply,
                 messageType: data.type,
                 timestamp: new Date().toISOString()
-            };
-            await saveMessage(JSON.stringify(aiMessageContent), "ai", sessionId);
+            }), "ai", this.sessionId);
 
-            const summaryData = {
-                chatHistory: [
-                    {
-                        content: question,
-                        type: "user",
-                        timestamp: new Date().toISOString()
-                    },
-                    {
-                        content: data.reply,
-                        type: "ai",
-                        messageType: data.type,
-                        timestamp: new Date().toISOString()
-                    }
-                ],
-                conversationSummary: data.summary
-            };
-            await saveSummaryData(sessionId, summaryData);
-
-            console.log(`✅ 成功: "${question}"`);
-            return true;
+            this.currentIndex++;
+            setTimeout(() => this.sendNextQuestion(), 2000);
 
         } catch (error) {
-            attempts++;
-            console.error(`❌ 失敗 (${attempts}/${maxRetries}):`, error);
-            
-            if (attempts < maxRetries) {
-                const waitTime = Math.pow(2, attempts) * 1000;
-                console.log(`⏳ ${waitTime/1000}秒後に再試行...`);
-                await new Promise(resolve => setTimeout(resolve, waitTime));
-            }
+            console.error('Error in automation:', error);
+            this.running = false;
         }
     }
-    return false;
 }
 
-async function simulateChat() {
-    console.log(`=== 開始 - ${questions.length}件 ===`);
-    let processed = 0;
-    let failed = 0;
-
-    for (let i = 0; i < questions.length; i++) {
-        const question = questions[i];
-        console.log(`\n[${i + 1}/${questions.length}]`);
-        
-        const success = await processQuestion(question);
-        if (success) {
-            processed++;
-            if (i < questions.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-            }
-        } else {
-            failed++;
-        }
-    }
-
-    console.log(`\n=== 完了: 成功=${processed}, 失敗=${failed} ===`);
-}
-
-simulateChat().catch(console.error);
+// 初期化
+document.addEventListener('DOMContentLoaded', () => {
+    new AutoChat();
+});
