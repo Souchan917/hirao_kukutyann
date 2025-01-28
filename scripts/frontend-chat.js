@@ -302,7 +302,8 @@ async function sendMessage() {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-Session-ID": sessionId
+                "X-Session-ID": sessionId,
+                "Accept": "application/json"
             },
             body: JSON.stringify({ 
                 userMessage: message,
@@ -315,6 +316,14 @@ async function sendMessage() {
         }
 
         const data = await response.json();
+        
+        if (!data) {
+            throw new Error('レスポンスデータが空です');
+        }
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
         
         if (data.summary) {
             summaryManager.saveSummary(data.summary);
@@ -336,9 +345,10 @@ async function sendMessage() {
 
     } catch (error) {
         console.error("チャットフロー内でエラー:", error);
-       
+        console.error("レスポンスステータス:", response.status);
+        console.error("レスポンスヘッダー:", response.headers);
+        
         alert("エラーが発生しました。もう一度お試しください。");
-
         addMessage("エラーが発生しました。もう一度お試しください。", "ai");
     } finally {
         state.isSubmitting = false;
