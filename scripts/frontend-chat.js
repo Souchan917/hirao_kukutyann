@@ -207,6 +207,9 @@ function setupRatingButtonEvents(goodBtn, badBtn) {
     badBtn.onclick = async () => await handleRating('bad', content, badBtn, goodBtn);
 }
 
+
+
+
 // テキストエリアの自動調整
 document.addEventListener("DOMContentLoaded", () => {
     const textarea = document.getElementById("questionInput");
@@ -217,20 +220,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+
+
+
+
 // メッセージ追加関数
-function addMessage(content, type, messageType = null) {
+function addMessage(content, type, messageType = null) {  // messageType パラメータを追加
     const messageDiv = document.createElement("div");
     messageDiv.className = type === "user" ? "user-message" : "ai-message";
-    
-    try {
-        messageDiv.textContent = type === "ai" ? JSON.parse(content).message : content;
-    } catch (e) {
-        console.error("メッセージのパース失敗:", e);
-        messageDiv.textContent = content;
-    }
-    
+    messageDiv.textContent = type === "ai" ? JSON.parse(content).message : content;  // AI の場合は message を取り出す
     chatContainer.appendChild(messageDiv);
 
+    // セッションデータに追加（分類結果も含める）
     const messageData = {
         content: content,
         type: type,
@@ -240,9 +241,9 @@ function addMessage(content, type, messageType = null) {
     if (type === "ai") {
         try {
             const parsedContent = JSON.parse(content);
-            messageData.messageType = parsedContent.messageType;
+            messageData.messageType = parsedContent.messageType;  // 分類結果を保存
         } catch (e) {
-            console.error("AIメッセージのパース失敗:", e);
+            console.log("メッセージのパースに失敗:", e);
         }
     }
 
@@ -270,14 +271,7 @@ function addMessage(content, type, messageType = null) {
 
 // メッセージ送信関数を修正
 async function sendMessage() {
-    console.log("sendMessage関数が呼び出されました");
-    
     if (state.isSubmitting || !state.lastMessageEvaluated) {
-        console.log("送信状態:", {
-            isSubmitting: state.isSubmitting,
-            lastMessageEvaluated: state.lastMessageEvaluated
-        });
-        
         if (!state.lastMessageEvaluated) {
             alert("前の回答の評価をお願いします。");
         }
@@ -285,8 +279,6 @@ async function sendMessage() {
     }
 
     const message = questionInput.value.trim();
-    console.log("送信メッセージ:", message);
-    
     if (!message) {
         alert("メッセージを入力してください。");
         return;
@@ -308,8 +300,7 @@ async function sendMessage() {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-Session-ID": sessionId,
-                "Accept": "application/json"
+                "X-Session-ID": sessionId
             },
             body: JSON.stringify({ 
                 userMessage: message,
@@ -322,14 +313,6 @@ async function sendMessage() {
         }
 
         const data = await response.json();
-        
-        if (!data) {
-            throw new Error('レスポンスデータが空です');
-        }
-        
-        if (data.error) {
-            throw new Error(data.error);
-        }
         
         if (data.summary) {
             summaryManager.saveSummary(data.summary);
@@ -351,10 +334,9 @@ async function sendMessage() {
 
     } catch (error) {
         console.error("チャットフロー内でエラー:", error);
-        console.error("レスポンスステータス:", response.status);
-        console.error("レスポンスヘッダー:", response.headers);
-        
+       
         alert("エラーが発生しました。もう一度お試しください。");
+
         addMessage("エラーが発生しました。もう一度お試しください。", "ai");
     } finally {
         state.isSubmitting = false;
@@ -363,7 +345,6 @@ async function sendMessage() {
         loadingState.style.display = "none";
     }
 }
-
 // 評価処理関数
 async function handleRating(rating, content, activeBtn, inactiveBtn) {
     try {
@@ -637,36 +618,54 @@ function endChat() {
     surveyForm.scrollIntoView({ behavior: 'smooth' });
 }
 
-// イベントリスナーの設定を修正
+// イベントリスナーの設定を改善
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOMContentLoaded イベント発火");
     setupRatingButtons();
-    
-    // グローバル変数の代わりに、ここで要素を取得
-    const sendButton = document.getElementById("sendQuestion");
-    const questionInput = document.getElementById("questionInput");
-    
-    if (sendButton) {
-        sendButton.addEventListener("click", sendMessage);
-        console.log("送信ボタンのリスナーを設定完了");
-    } else {
-        console.error("送信ボタンが見つかりません");
-    }
+    const textarea = document.getElementById("questionInput");
 
     // テキストエリアの自動調整
-    if (questionInput) {
-        questionInput.addEventListener("input", function() {
-            this.style.height = "auto";
-            this.style.height = this.scrollHeight + "px";
-        });
+    textarea.addEventListener("input", function () {
+        this.style.height = "auto"; // 高さをリセット
+        this.style.height = this.scrollHeight + "px"; // 必要な高さに設定
+    });
 
-        // Ctrl+Enter での送信
+
+    if (sendButton) {
+        sendButton.addEventListener("click", sendMessage);
+        console.log("送信ボタンのリスナーを設定");
+    }
+
+    if (resetButton) {
+        resetButton.addEventListener("click", resetChat);
+        console.log("リセットボタンのリスナーを設定");
+    }
+
+    if (questionInput) {
+        // Enterキーの処理を変更
         questionInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" && e.ctrlKey) {
-                e.preventDefault();
-                sendMessage();
+            if (e.key === "Enter") {
+                // Ctrl+Enterで送信
+                if (e.ctrlKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
             }
         });
+        console.log("入力フィールドのリスナーを設定");
     }
+
+    if (endChatButton) {
+        endChatButton.addEventListener("click", endChat);
+        console.log("終了ボタンのリスナーを設定");
+    }
+
+    if (submitSurveyButton) {
+        submitSurveyButton.addEventListener("click", submitSurvey);
+        console.log("アンケート送信ボタンのリスナーを設定");
+    }
+    
+    console.log("イベントリスナーの設定完了");
 });
 
 // ページロード時の処理
