@@ -207,9 +207,6 @@ function setupRatingButtonEvents(goodBtn, badBtn) {
     badBtn.onclick = async () => await handleRating('bad', content, badBtn, goodBtn);
 }
 
-
-
-
 // テキストエリアの自動調整
 document.addEventListener("DOMContentLoaded", () => {
     const textarea = document.getElementById("questionInput");
@@ -219,10 +216,6 @@ document.addEventListener("DOMContentLoaded", () => {
         this.style.height = this.scrollHeight + "px"; // 必要な高さに設定
     });
 });
-
-
-
-
 
 // メッセージ追加関数
 function addMessage(content, type, messageType = null) {  // messageType パラメータを追加
@@ -345,6 +338,7 @@ async function sendMessage() {
         loadingState.style.display = "none";
     }
 }
+
 // 評価処理関数
 async function handleRating(rating, content, activeBtn, inactiveBtn) {
     try {
@@ -620,20 +614,18 @@ function endChat() {
 
 // イベントリスナーの設定を改善
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOMContentLoaded イベント発火");
-    setupRatingButtons();
-    const textarea = document.getElementById("questionInput");
-
-    // テキストエリアの自動調整
-    textarea.addEventListener("input", function () {
-        this.style.height = "auto"; // 高さをリセット
-        this.style.height = this.scrollHeight + "px"; // 必要な高さに設定
-    });
-
-
+    console.log("DOM読み込み完了");
+    
+    const sendButton = document.getElementById("sendQuestion");
+    console.log("送信ボタン要素:", sendButton);
+    
     if (sendButton) {
-        sendButton.addEventListener("click", sendMessage);
-        console.log("送信ボタンのリスナーを設定");
+        sendButton.addEventListener("click", () => {
+            console.log("送信ボタンがクリックされました");
+            sendMessage();
+        });
+    } else {
+        console.error("送信ボタンが見つかりません");
     }
 
     if (resetButton) {
