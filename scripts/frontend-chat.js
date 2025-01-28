@@ -264,7 +264,14 @@ function addMessage(content, type, messageType = null) {  // messageType パラ�
 
 // メッセージ送信関数を修正
 async function sendMessage() {
+    console.log("sendMessage関数が呼び出されました");
+    
     if (state.isSubmitting || !state.lastMessageEvaluated) {
+        console.log("送信状態:", {
+            isSubmitting: state.isSubmitting,
+            lastMessageEvaluated: state.lastMessageEvaluated
+        });
+        
         if (!state.lastMessageEvaluated) {
             alert("前の回答の評価をお願いします。");
         }
@@ -272,6 +279,8 @@ async function sendMessage() {
     }
 
     const message = questionInput.value.trim();
+    console.log("送信メッセージ:", message);
+    
     if (!message) {
         alert("メッセージを入力してください。");
         return;
@@ -612,52 +621,36 @@ function endChat() {
     surveyForm.scrollIntoView({ behavior: 'smooth' });
 }
 
-// イベントリスナーの設定を改善
+// イベントリスナーの設定を修正
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM読み込み完了");
+    setupRatingButtons();
     
+    // グローバル変数の代わりに、ここで要素を取得
     const sendButton = document.getElementById("sendQuestion");
-    console.log("送信ボタン要素:", sendButton);
+    const questionInput = document.getElementById("questionInput");
     
     if (sendButton) {
-        sendButton.addEventListener("click", () => {
-            console.log("送信ボタンがクリックされました");
-            sendMessage();
-        });
+        sendButton.addEventListener("click", sendMessage);
+        console.log("送信ボタンのリスナーを設定完了");
     } else {
         console.error("送信ボタンが見つかりません");
     }
 
-    if (resetButton) {
-        resetButton.addEventListener("click", resetChat);
-        console.log("リセットボタンのリスナーを設定");
-    }
-
+    // テキストエリアの自動調整
     if (questionInput) {
-        // Enterキーの処理を変更
+        questionInput.addEventListener("input", function() {
+            this.style.height = "auto";
+            this.style.height = this.scrollHeight + "px";
+        });
+
+        // Ctrl+Enter での送信
         questionInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
-                // Ctrl+Enterで送信
-                if (e.ctrlKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
+            if (e.key === "Enter" && e.ctrlKey) {
+                e.preventDefault();
+                sendMessage();
             }
         });
-        console.log("入力フィールドのリスナーを設定");
     }
-
-    if (endChatButton) {
-        endChatButton.addEventListener("click", endChat);
-        console.log("終了ボタンのリスナーを設定");
-    }
-
-    if (submitSurveyButton) {
-        submitSurveyButton.addEventListener("click", submitSurvey);
-        console.log("アンケート送信ボタンのリスナーを設定");
-    }
-    
-    console.log("イベントリスナーの設定完了");
 });
 
 // ページロード時の処理
