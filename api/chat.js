@@ -117,6 +117,7 @@ const CLASSIFICATION_PROMPT = `あなたは子育て専門のカウンセラー�
 分類結果（上記6種類のいずれかの単語のみを返してください）: ~~~`;
 
 
+
 // 相談処理用の関数
 async function handleConsultation(userMessageData, apiKey) {
     console.log('\n=== 相談処理開始 ===');
