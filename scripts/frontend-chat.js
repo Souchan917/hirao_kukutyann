@@ -218,13 +218,19 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // メッセージ追加関数
-function addMessage(content, type, messageType = null) {  // messageType パラメータを追加
+function addMessage(content, type, messageType = null) {
     const messageDiv = document.createElement("div");
     messageDiv.className = type === "user" ? "user-message" : "ai-message";
-    messageDiv.textContent = type === "ai" ? JSON.parse(content).message : content;  // AI の場合は message を取り出す
+    
+    try {
+        messageDiv.textContent = type === "ai" ? JSON.parse(content).message : content;
+    } catch (e) {
+        console.error("メッセージのパース失敗:", e);
+        messageDiv.textContent = content;
+    }
+    
     chatContainer.appendChild(messageDiv);
 
-    // セッションデータに追加（分類結果も含める）
     const messageData = {
         content: content,
         type: type,
@@ -234,9 +240,9 @@ function addMessage(content, type, messageType = null) {  // messageType パラ�
     if (type === "ai") {
         try {
             const parsedContent = JSON.parse(content);
-            messageData.messageType = parsedContent.messageType;  // 分類結果を保存
+            messageData.messageType = parsedContent.messageType;
         } catch (e) {
-            console.log("メッセージのパースに失敗:", e);
+            console.error("AIメッセージのパース失敗:", e);
         }
     }
 
